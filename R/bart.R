@@ -568,8 +568,13 @@ bart <- function(x_train,
         }
 
 
-        #
+        # Setting the progress bar
+        pb <- utils::txtProgressBar(min = 0,max = n_mcmc,style = 3)
         for(i in 1:n_mcmc){
+
+                # Adding the tick
+                Sys.sleep(0.1)
+                utils::setTxtProgressBar(pb,i)
 
                 for(t in 1:n_tree){
 
