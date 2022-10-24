@@ -31,11 +31,11 @@ get_nonterminals <- function(tree){
 }
 
 get_nog <- function(tree){
-        return(tree[(unlist(lapply(tree,function(t){t$nog==1})))])
+        return(tree[(unlist(lapply(tree,function(t){t$nog==1 & t$terminal==0 })))])
 }
 
 count_nog <- function(tree){
-        return(sum(unlist(lapply(tree,function(t){t$nog==1}))))
+        return(sum(unlist(lapply(tree,function(t){t$nog==1 & t$terminal==0}))))
 }
 
 # Getting all nodes index
@@ -156,7 +156,7 @@ grow <- function(res_vec,
         new_g_node$left <- max_index+1
         new_g_node$right <- max_index+2
         new_g_node$terminal <- 0
-        if(!is.na(g_node$parent)){new_g_node$nog = 1}
+        new_g_node$nog = 1 # It always be a a nog since is given origin to two children
 
 
         # Get nog counter ( FOR THE NEW TREE )
@@ -177,6 +177,13 @@ grow <- function(res_vec,
         if(stats::runif(n = 1)<=exp(log_acceptance)){
                 # Maybe use append to make everything easier
                 tree[[g_node_name]] <- new_g_node
+
+                # Transform the parent into a nog
+                if(!is.na(g_node$parent)){
+                        tree[[paste0("node_",g_node$parent)]]$nog <- 0
+                }
+
+
                 new_nodes <- list(left_node,right_node)
                 names(new_nodes) <- c(paste0("node_",c(new_nodes[[1]]$index,new_nodes[[2]]$index)))
                 tree <- append(tree,new_nodes,after = g_node_position_orig)
@@ -196,7 +203,15 @@ prune <- function(tree,
 
         # Getting the node
         nog_nodes <- get_nog(tree = tree)
-        n_terminal_nodes <- length(get_terminals(tree = tree))
+        t_nodes <- (get_terminals(tree = tree))
+
+        n_terminal_nodes <- length(terminal_nodes)
+        n_nogs <- length(nog_nodes)
+
+        # Returning the  a simple tree
+        if(length(nog_nodes)==0){
+                return(tree)
+        }
 
         # Sample a node to be pruned
         nog_nodes_index <- sample(1:length(nog_nodes),size = 1)
@@ -205,17 +220,14 @@ prune <- function(tree,
                 p_node <- nog_nodes[[nog_nodes_index]]
         }
 
-        # Case of just one split
-        if(length(nog_nodes)==0 & length(tree)==3){
-                p_node <- tree[[1]] ## Getting the root node
-        }  else {
-                return(tree)
-        }
-
-        n_nog_nodes <- ifelse(length(nog_nodes)==0,1,length(nog_nodes))
 
         # Name node to be pruned
         p_node_name <- paste0("node_",p_node$index)
+
+        # Getting the name of non terminals
+        names_non_terminals <- names(tree[!(names(tree) %in% names(t_nodes))])
+        names_non_terminals <- names_non_terminals[names_non_terminals!=p_node_name] # Removing the current pruned node
+        parents_non_t_nodes <- sapply(tree[names_non_terminals],function(x){x$parent})
         left_node_name <- paste0("node_",p_node$left)
         left_node <- tree[[paste0("node_",p_node$left)]]
         right_node_name <- paste0("node_",p_node$right)
@@ -331,13 +343,16 @@ change <- function(res_vec,
         new_left_node <- tree[[new_left_name]]
         new_left_node$obs_train <- left_train_id
         new_left_node$obs_test <- left_test_id
+        new_left_node$var <- split_var
+        new_left_node$var_split_rule <- split_var_sampled_rule
 
         # Creating a new right node and changing it
         old_right_node <- tree[[new_right_name]]
         new_right_node <- tree[[new_right_name]]
         new_right_node$obs_train <- right_train_id
         new_right_node$obs_test <- right_test_id
-
+        new_right_node$var <- split_var
+        new_right_node$var_split_rule <- split_var_sampled_rule
 
         # Calculating the acceptance for two new nodes
         tree_loglikeli <- node_loglikelihood(res_vec = res_vec,node = new_left_node,tau = tau,tau_mu = tau_mu) +
