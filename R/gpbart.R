@@ -6,17 +6,29 @@
 gp_bart <- function(x_train,
                  y_train,
                  x_test,
-                 n_tree,
-                 n_mcmc,
-                 n_burn,
-                 n_min_size,
-                 tau,
-                 alpha, beta,
-                 df, sigquant,
-                 numcut,
+                 n_tree = 1,
+                 n_mcmc = 2000,
+                 n_burn = 500,
+                 node_min_size = 1,
+                 tau = 1,
+                 alpha = 0.95, beta = 2,
+                 df = 3, sigquant = 0.9,
+                 numcut = 100,
                  scale_boolean = TRUE,
                  K_bart = 2,
-                 bart_boolean = FALSE){
+                 bart_boolean = FALSE,
+                 keeptrees = FALSE){
+
+
+        # Verifying if x_train and x_test are matrices
+        if(!is.matrix(x_train) || !is.matrix(x_test)){
+                x_train <- as.matrix(x_train)
+                x_test <- as.matrix(x_test)
+        }
+
+        if(is.null(colnames(x_train)) || is.null(colnames(x_test))) {
+                stop("Insert valid NAMED matrix for x_train or x_test")
+        }
 
         # Saving a_min and b_max
         a_min <- NULL
@@ -104,25 +116,27 @@ gp_bart <- function(x_train,
         y_train_hat_post <- matrix(0, ncol = n_train,nrow = n_post)
         y_test_hat_post <- matrix(0, ncol = n_test,nrow = n_post)
         curr <- 0
-        y_train_hat_trees <- matrix(0, nrow = n_tree, ncol = n_train)
+        y_train_hat_trees <- matrix(rep(y_scale/n_tree,n_tree), nrow = n_tree, ncol = n_train)
         y_test_hat_trees <- matrix(0, nrow = n_tree, ncol = n_test)
 
 
         # Storing the current partial residuals
-        current_partial_residuals_matrix <- matrix(NA,nrow = n_tree, ncol = n_train)
-        current_partial_residuals_list <- list()
+        current_partial_residuals_matrix <- matrix(NA,nrow = n_tree, ncol = n_train,byrow = TRUE)
 
+        current_partial_residuals_list <- vector("list",length = n_post)
+        all_tree_prediction <- vector("list", length = n_post)
 
         # Initialising values for phi_vec, and nu
         phi_vec_matrix <- matrix(1, nrow = n_tree,ncol = ncol(x_train))
         phi_post <- list(n_post)
-        nu_vector <- rep(1,n_tree)
+        nu_vector <- rep(16*n_tree,n_tree)
         nu_post <- matrix(NA,nrow = n_post, ncol = n_tree)
 
         tau_post <- numeric(n_post)
+        post_trees <- vector("list",length = n_tree)
 
         # Getting initial trees
-        current_trees <- list()
+        current_trees <- vector("list",length = n_tree)
 
         for(i in 1:n_tree){
                 current_trees[[i]] <- new_tree(x_train = x_train,x_test = x_test)
@@ -157,14 +171,14 @@ gp_bart <- function(x_train,
                                 current_trees[[t]]  <- if(verb=="grow"){
                                         grow(res_vec = partial_residuals,tree = current_trees[[t]],
                                              x_train = x_train,x_test = x_test,xcut = xcut,tau = tau,
-                                             tau_mu = tau_mu,alpha = alpha,beta = beta,node_min_size = 1)
+                                             tau_mu = tau_mu,alpha = alpha,beta = beta,node_min_size = node_min_size)
                                 } else if(verb=="prune"){
                                         prune(tree = current_trees[[t]],res_vec = partial_residuals,
                                               tau = tau,tau_mu = tau_mu,alpha = alpha,beta = beta)
                                 } else if(verb=="change"){
                                         change(res_vec = partial_residuals,tree = current_trees[[t]],
                                                x_train = x_train,x_test = x_test,xcut = xcut,
-                                               tau = tau,tau_mu = tau_mu,alpha = alpha,beta = beta,node_min_size = 1)
+                                               tau = tau,tau_mu = tau_mu,alpha = alpha,beta = beta,node_min_size = node_min_size)
                                 }
 
                                 # Updating mu
@@ -201,6 +215,7 @@ gp_bart <- function(x_train,
                                                                           nu = nu_vector[t],phi_vector_p = phi_vec_matrix[t,])
                                 } else if( verb == "prune"){
                                         current_trees[[t]] <- prune_gpbart(res_vec = partial_residuals,
+                                                                           x_train = x_train,
                                                                            tree = current_trees[[t]],
                                                                            tau = tau, tau_mu = tau_mu, alpha = alpha, beta = beta,
                                                                            nu = nu_vector[t], phi_vector_p = phi_vec_matrix[t,])
@@ -218,15 +233,15 @@ gp_bart <- function(x_train,
 
                                 # Changing for the current tree
                                 # Updating the phi
-                                phi_vec_matrix[t,] <- update_phi_gpbart(x_train = x_train,res_vec = partial_residuals,
+                                phi_vec_matrix[t,] <- update_phi_gpbart(tree = current_trees[[t]],x_train = x_train,res_vec = partial_residuals,
                                                           phi_vector_p = phi_vec_matrix[t,],nu = nu_vector[t],tau = tau,tau_mu = tau_mu)
 
 
-                                nu_vector[t] <- update_nu_gpbart(x_train = x_train,res_vec = partial_residuals,
-                                                                   phi_vector_p = phi_vec_matrix[t,],nu = nu_vector[t],tau = tau,tau_mu = tau_mu)
+                                # nu_vector[t] <- update_nu_gpbart(tree = current_trees[[t]],x_train = x_train,res_vec = partial_residuals,
+                                #                                    phi_vector_p = phi_vec_matrix[t,],nu = nu_vector[t],tau = tau,tau_mu = tau_mu)
 
                                 # Update the mu values
-                                current_trees[[t]] <- update_mu_gpbart(tree = tree,x_train = x_train,res_vec = partial_residuals,nu = nu_vector[t],
+                                current_trees[[t]] <- update_mu_gpbart(tree = current_trees[[t]],x_train = x_train,res_vec = partial_residuals,nu = nu_vector[t],
                                                                   phi_vector_p = phi_vec_matrix[t,],tau = tau,tau_mu = tau_mu)
 
                                 # This one is the most complicated, I need to update the predictions based on the tree structure
@@ -253,6 +268,7 @@ gp_bart <- function(x_train,
                 if(i>n_burn){
                         curr = curr + 1
                         current_partial_residuals_list[[curr]] <- current_partial_residuals_matrix
+                        all_tree_prediction[[curr]] <- y_train_hat_trees
                         y_train_hat_post[curr,] <- colSums(y_train_hat_trees)
                         y_test_hat_post[curr,] <- colSums(y_test_hat_trees)
                         nu_post[curr,] <- nu_vector
@@ -288,21 +304,117 @@ gp_bart <- function(x_train,
                      y_hat_post = y_train_hat_post,
                      y_test_hat_post = y_test_hat_post,
                      last_trees = current_trees,
+                     data = list(x_train = x_train,
+                                 y_train = y_train),
+                     prior = list(tau_mu = tau_mu,
+                                  a_tau = a_tau,
+                                  d_tau = d_tau,
+                                  scale_boolean = scale_boolean),
                      posterior = list(phi_post = phi_post,
                                       nu_post = nu_post,
                                       partial_residuals = current_partial_residuals_list,
+                                      all_tree_prediction = all_tree_prediction,
                                       trees = post_trees))
         } else {
                 post_obj <- list(tau_post = tau_post,
                      y_hat_post = y_train_hat_post,
                      y_test_hat_post = y_test_hat_post,
                      last_trees = current_trees,
+                     data = list(x_train = x_train,
+                                 y_train = y_train),
+                     prior = list(tau_mu = tau_mu,
+                                  a_tau = a_tau,
+                                  d_tau = d_tau,
+                                  scale_boolean = scale_boolean),
                      posterior = list(phi_post = phi_post,
                                       nu_post = nu_post,
-                                      partial_residuals = current_partial_residuals_list))
+                                      partial_residuals = current_partial_residuals_list,
+                                      all_tree_prediction = all_tree_prediction))
 
         }
 
         return(post_obj)
 
 }
+
+# GP-BART predict ---  a function to predict given new observations
+gp_bart_predict <- function(gpbart_mod_example,
+                            x_new){
+
+        if(!is.matrix(x_new) || !all(colnames(x_new)==colnames(gpbart_mod_example$data$x_train))){
+                stop ("Insert a valid new X matrix")
+        }
+
+        # Storing the new trees
+        new_trees <- gpbart_mod_example$posterior$trees
+
+        y_hat_new_test <- matrix(NA,nrow = length(new_trees),ncol = nrow(x_new))
+        y_hat_trees_new_test <- matrix(NA,nrow = length(new_trees[[1]]),ncol = nrow(x_new))
+
+        # All trees prediction
+        all_tree_hat_list <- vector("list",length = length(new_trees))
+
+        # Returning tau to the scaled version
+        gpbart_mod_example$tau_post <- gpbart_mod_example$tau_post*(max(gpbart_mod_example$data$y_train)-min(gpbart_mod_example$data$y_train))^2
+
+        # Creating the new test set divisions
+        for(i in 1:length(new_trees)){
+
+                for(t in 1:length(gpbart_mod_example$posterior$trees[[1]])){
+                        tree_aux <- new_trees[[i]][[t]]
+
+                        for(leaf in 1:length(tree_aux)){
+
+                                # Setting the new root
+                                if(is.na(tree_aux[[leaf]]$var_split_rule)){
+                                        tree_aux[[leaf]]$obs_test <- 1:nrow(x_new)
+                                }
+
+                                # Get the current node
+                                current_node_obs <- tree_aux[[leaf]]$obs_test
+
+                                # Updating the left node
+                                if(!is.na(tree_aux[[leaf]]$left)){
+                                        left_node <- tree_aux[[paste0("node_",tree_aux[[leaf]]$left)]]
+                                        tree_aux[[paste0("node_",tree_aux[[leaf]]$left)]]$obs_test <- current_node_obs[x_new[current_node_obs, left_node$var]<left_node$var_split_rule]
+                                }
+
+                                # Updating the left node
+                                if(!is.na(tree_aux[[leaf]]$right)){
+                                        right_node <- tree_aux[[paste0("node_",tree_aux[[leaf]]$right)]]
+                                        tree_aux[[paste0("node_",tree_aux[[leaf]]$right)]]$obs_test <- current_node_obs[x_new[current_node_obs, right_node$var]>=right_node$var_split_rule]
+                                }
+
+
+                                # Predicting for the current node
+                                if(tree_aux[[leaf]]$terminal==1){
+                                       y_hat_trees_new_test[t,tree_aux[[leaf]]$obs_test] <-  update_g_node(node = tree_aux[[leaf]],
+                                                      x_train = gpbart_mod_example$data$x_train,
+                                                      x_test = x_new,
+                                                      res_vec = gpbart_mod_example$posterior$partial_residuals[[i]][t,],
+                                                      tau = gpbart_mod_example$tau_post[i],tau_mu = gpbart_mod_example$prior$tau_mu,
+                                                      nu = gpbart_mod_example$posterior$nu_post[i,t],
+                                                      phi_vector_p = gpbart_mod_example$posterior$phi_post[[i]][t,],test_only = TRUE)$test_sample
+                                }
+
+                        }
+                } # Ending the iterations over trees
+                all_tree_hat_list[[i]] <- if(gpbart_mod_example$prior$scale_boolean){
+                        y_hat_trees_new_test
+                } else {
+                        y_hat_trees_new_test
+                }
+                y_hat_new_test[i,] <- colSums(y_hat_trees_new_test)
+        }
+
+        # Getting the GPBART mod
+        if(gpbart_mod_example$prior$scale_boolean){
+                return(list( all_trees = all_tree_hat_list,
+                        y_hat_new_post = unnormalize_bart(z = y_hat_new_test,a = min(gpbart_mod_example$data$y_train),b = max(gpbart_mod_example$data$y_train))))
+        } else {
+                return(list( all_trees_post = all_tree_hat_list,
+                             y_hat_new_post = y_hat_new_test))
+        }
+
+}
+

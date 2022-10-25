@@ -99,3 +99,33 @@ partial_dependence_plot <- function(gp_bart_obj,
 
 }
 
+
+# Getting new test value
+new_partial_dependence_plot <- function(gp_bart_mod,
+                                        var){
+
+        # Saving the mod
+        x_train <- gp_bart_mod$data$x_train
+        partial_dependence_plot <- numeric(nrow(x_train))
+        partial_dependence_each_tree <- matrix(NA,nrow = nrow(x_train), ncol = length(gp_bart_mod$last_trees))
+
+        for(i in 1:nrow(x_train)){
+                x_test <- x_train
+                x_test[,var] <- x_test[,var][i]
+
+                new_pred <- gp_bart_predict(gpbart_mod_example = gp_bart_mod,x_new = x_test)
+
+                partial_dependence_plot[i] <- mean(colMeans(new_pred$y_hat_new_post))
+                # partial_dependence_each_tree[i,] <- unnormalize_bart(rowMeans(Reduce("+",new_pred$all_trees)/length(new_pred$all_trees)),
+                #                                                      a = min(gp_bart_mod$data$y_train),
+                #                                                      b = max(gp_bart_mod$data$y_train))
+        }
+
+        return(list(mod = gp_bart_mod,
+                    partial_dependence_plot = partial_dependence_plot,
+                    var = var))
+
+}
+
+
+# new_partial_d_plot <- new_partial_dependence_plot(gp_bart_mod = gpbart_mod_example,var = "x.3")
