@@ -129,3 +129,5 @@ new_partial_dependence_plot <- function(gp_bart_mod,
 
 
 # new_partial_d_plot <- new_partial_dependence_plot(gp_bart_mod = gpbart_mod_example,var = "x.3")
+
+# plot(new_partial_d_plot$mod$data$x_train[,"x.3"],new_partial_d_plot$partial_dependence_plot)

@@ -17,7 +17,9 @@ gp_bart <- function(x_train,
                  scale_boolean = TRUE,
                  K_bart = 2,
                  bart_boolean = FALSE,
-                 keeptrees = FALSE){
+                 keeptrees = FALSE,
+                 bart_warmup = 250,
+                 gp_variables_){
 
 
         # Verifying if x_train and x_test are matrices
@@ -51,6 +53,9 @@ gp_bart <- function(x_train,
         if(is.null(colnames(x_train)) || is.null(colnames(x_test)) ) {
                 stop("Insert a valid NAMED matrix")
         }
+
+        # Giving the names for xcut
+        colnames(xcut) <- colnames(x_train)
 
         if(!is.vector(y_train)) {
                 stop("Insert a valid y vector")
@@ -104,9 +109,6 @@ gp_bart <- function(x_train,
 
         }
 
-        # a_tau <- 1.5
-        # d_tau <- 0.003
-
         # Defining other quantities
         n_train <- nrow(x_train)
         n_test <- nrow(x_test)
@@ -143,18 +145,26 @@ gp_bart <- function(x_train,
         }
 
         # Creating a manual progress bart
-        progress_bart_limits <- round(seq(1,n_mcmc,length.out=10))
+        progress_bart_limits <- round(seq(1,n_mcmc,length.out=100))
 
-        #
+        # Checking if the correct number of bart_warmup iterations were selected
+        if(n_burn < bart_warmup){
+                (" The number of burn iterations cannot be smaller then the BART warm-up")
+        }
+
         for(i in 1:n_mcmc){
 
                 # Small progress bar
                 if(i %in% progress_bart_limits){
-                        cat(" | ")
+                        cat("|")
                 }
 
                 for(t in 1:n_tree){
 
+                        # Adding BART warmup iterations
+                        if(n_mcmc > bart_warmup) {
+                                bart_boolean <- FALSE
+                        }
 
                         # USING BART BOOLEAN OR NOT
                         if(bart_boolean){
@@ -202,10 +212,10 @@ gp_bart <- function(x_train,
                                 # Storing current partial
                                 current_partial_residuals_matrix[t,] <- partial_residuals
 
-                                verb <- sample(x = c("grow","prune","change"),size = 1,prob = c(0.3,0.3,0.4))
+                                verb <- sample(x = c("grow","grow_rotate","prune","change","change_rotate"),size = 1,prob = c(0.15,0.15,0.3,0.2,0.2))
 
                                 if(length(current_trees[[t]])==1){
-                                        verb <- "grow"
+                                        verb <- sample(c("grow","grow_rotate"),size = 1)
                                 }
                                 # Selecting one verb movement
                                 if(verb == "grow"){
@@ -213,18 +223,28 @@ gp_bart <- function(x_train,
                                                                           x_train = x_train,x_test = x_test,xcut = xcut,tau = tau,
                                                                           tau_mu = tau_mu,alpha = alpha,beta = beta,node_min_size = node_min_size,
                                                                           nu = nu_vector[t],phi_vector_p = phi_vec_matrix[t,])
-                                } else if( verb == "prune"){
+                                } else if( verb == "grow_rotate"){
+                                        current_trees[[t]] <- grow_rotation_gpbart(res_vec = partial_residuals,tree = current_trees[[t]],
+                                                                                   x_train = x_train,x_test = x_test,xcut = xcut,tau = tau,
+                                                                                   tau_mu = tau_mu, alpha = alpha,beta = beta,node_min_size = node_min_size,
+                                                                                   nu = nu_vector[t], phi_vector_p = phi_vec_matrix[t,],gp_variables = gp_variables_)
+
+                                }else if( verb == "prune"){
                                         current_trees[[t]] <- prune_gpbart(res_vec = partial_residuals,
                                                                            x_train = x_train,
                                                                            tree = current_trees[[t]],
                                                                            tau = tau, tau_mu = tau_mu, alpha = alpha, beta = beta,
                                                                            nu = nu_vector[t], phi_vector_p = phi_vec_matrix[t,])
-
                                 } else if( verb == "change"){
                                         current_trees[[t]] <- change_gpbart(res_vec = partial_residuals,tree = current_trees[[t]],
                                                                           x_train = x_train,x_test = x_test,xcut = xcut,tau = tau,
                                                                           tau_mu = tau_mu,alpha = alpha,beta = beta,node_min_size = node_min_size,
                                                                           nu = nu_vector[t],phi_vector_p = phi_vec_matrix[t,])
+                                } else if (verb == "change_rotate"){
+                                        current_trees[[t]] <- change_rotation_gpbart(res_vec = partial_residuals,tree = current_trees[[t]],
+                                                                                   x_train = x_train,x_test = x_test,xcut = xcut,tau = tau,
+                                                                                   tau_mu = tau_mu, alpha = alpha,beta = beta,node_min_size = node_min_size,
+                                                                                   nu = nu_vector[t], phi_vector_p = phi_vec_matrix[t,],gp_variables = gp_variables_)
                                 } else {
                                         stop("Error no valid-verb")
                                 }
@@ -296,7 +316,7 @@ gp_bart <- function(x_train,
         }
 
         # Diagnostic
-        plot(y_train,colMeans(y_train_hat_post))
+        # plot(y_train,colMeans(y_train_hat_post))
 
         # Returning the posterior objets
         if(keeptrees){
@@ -361,6 +381,7 @@ gp_bart_predict <- function(gpbart_mod_example,
         for(i in 1:length(new_trees)){
 
                 for(t in 1:length(gpbart_mod_example$posterior$trees[[1]])){
+
                         tree_aux <- new_trees[[i]][[t]]
 
                         for(leaf in 1:length(tree_aux)){
