@@ -2,3 +2,5 @@
 useDynLib(mmgpbart)
 export(gp_bart)
 export(gp_bart_predict)
+export(rmse)
+export(crps)
