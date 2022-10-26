@@ -242,7 +242,7 @@ prune <- function(tree,
         transition_loglike <- log(0.3/(n_terminal_nodes-1))-log(0.3/length(nog_nodes)) # prob of getting from the new tree to the old (PRUNE), minus getting to the old to the new (GROW)
 
         # Calculate the tree prior contribution
-        tree_prior <- log(1-alpha*(1+p_node$depth)^(-beta)) - ((-beta)*log((1+g_node$depth)) + log(alpha)) - 2*log(1-alpha*(1+(p_node$depth+1))^(-beta))
+        tree_prior <- log(1-alpha*(1+p_node$depth)^(-beta)) - ((-beta)*log((1+p_node$depth)) + log(alpha)) - 2*log(1-alpha*(1+(p_node$depth+1))^(-beta))
 
         log_acceptance <- tree_loglikeli+transition_loglike+tree_prior
 

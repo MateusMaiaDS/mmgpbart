@@ -9,7 +9,7 @@ update_nu_bgp <- function(x_train,
         sq_dist_matrix_x <- symm_distance_matrix(m1 = x_train,phi_vector = phi_vec)
 
         # Setting a proposal for \nu
-        proposal_nu <- runif(n = 1,min = 0,max = 100)
+        proposal_nu <- stats::runif(n = 1,min = 0,max = 100)
 
         # cat("Proposal nu equal to: ", round(proposal_nu,digits = 3)," ")
 
@@ -47,7 +47,7 @@ update_phi_bgp <- function(x_train,
 
   # Creating a function to update phi
   for(i in 1:length(phi_vec)){
-    phi_proposal <- runif(n = 1.,min = 0,max = 10)
+    phi_proposal <- stats::runif(n = 1.,min = 0,max = 10)
     new_phi_vec <- phi_vec
     new_phi_vec[i] <- phi_proposal
     new_dist_m1_x <- symm_distance_matrix(m1 = x_train,phi_vector = new_phi_vec)

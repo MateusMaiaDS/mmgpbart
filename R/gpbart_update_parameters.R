@@ -170,7 +170,7 @@ update_g_node <- function(node,
                 g_sample <- mvnfast::rmvn(n = 1,mu = g_mean,sigma = g_var+diag(1e-8,nrow = nrow(g_var)))
         }
 
-        g_sample_test <- mvnfast::rmvn(n = 1,mu = g_test_mean,sigma = g_test_var+diag(1e-8,nrow = nrow(g_test_var)))
+        g_sample_test <- mvnfast::rmvn(n = 1,mu = g_test_mean,sigma = g_test_var+diag(1e-6,nrow = nrow(g_test_var)))
 
         return(list(train_sample = g_sample, test_sample = g_sample_test))
 }

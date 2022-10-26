@@ -3,6 +3,8 @@
 #' @importFrom Rcpp sourceCpp
 #'
 # Building the GP-BART function
+#' @export
+#'
 gp_bart <- function(x_train,
                  y_train,
                  x_test,
@@ -325,7 +327,8 @@ gp_bart <- function(x_train,
                      y_test_hat_post = y_test_hat_post,
                      last_trees = current_trees,
                      data = list(x_train = x_train,
-                                 y_train = y_train),
+                                 y_train = y_train,
+                                 x_test = x_test),
                      prior = list(tau_mu = tau_mu,
                                   a_tau = a_tau,
                                   d_tau = d_tau,
@@ -341,7 +344,8 @@ gp_bart <- function(x_train,
                      y_test_hat_post = y_test_hat_post,
                      last_trees = current_trees,
                      data = list(x_train = x_train,
-                                 y_train = y_train),
+                                 y_train = y_train,
+                                 x_test = x_test),
                      prior = list(tau_mu = tau_mu,
                                   a_tau = a_tau,
                                   d_tau = d_tau,
@@ -358,6 +362,8 @@ gp_bart <- function(x_train,
 }
 
 # GP-BART predict ---  a function to predict given new observations
+#' @export
+#'
 gp_bart_predict <- function(gpbart_mod_example,
                             x_new){
 
@@ -396,14 +402,36 @@ gp_bart_predict <- function(gpbart_mod_example,
 
                                 # Updating the left node
                                 if(!is.na(tree_aux[[leaf]]$left)){
+
+
                                         left_node <- tree_aux[[paste0("node_",tree_aux[[leaf]]$left)]]
-                                        tree_aux[[paste0("node_",tree_aux[[leaf]]$left)]]$obs_test <- current_node_obs[x_new[current_node_obs, left_node$var]<left_node$var_split_rule]
+
+                                        if(is.list(left_node$var)){
+
+                                                # Rotate the the new observations
+                                                rotated_x_new <- tcrossprod(A(left_node$var$theta),x_new[,left_node$var$split_var_pair])
+                                                rownames(rotated_x_new) <- left_node$var$split_var_pair
+                                                tree_aux[[paste0("node_",tree_aux[[leaf]]$left)]]$obs_test <- current_node_obs[rotated_x_new[left_node$var$split_var,current_node_obs]<left_node$var_split_rule]
+
+                                        } else {
+
+                                                tree_aux[[paste0("node_",tree_aux[[leaf]]$left)]]$obs_test <- current_node_obs[x_new[current_node_obs, left_node$var]<left_node$var_split_rule]
+                                        }
                                 }
 
                                 # Updating the left node
                                 if(!is.na(tree_aux[[leaf]]$right)){
                                         right_node <- tree_aux[[paste0("node_",tree_aux[[leaf]]$right)]]
-                                        tree_aux[[paste0("node_",tree_aux[[leaf]]$right)]]$obs_test <- current_node_obs[x_new[current_node_obs, right_node$var]>=right_node$var_split_rule]
+
+                                        if(is.list(right_node$var)){
+
+                                                rotated_x_new <- tcrossprod(A(right_node$var$theta),x_new[,right_node$var$split_var_pair])
+                                                rownames(rotated_x_new) <- right_node$var$split_var_pair
+                                                tree_aux[[paste0("node_",tree_aux[[leaf]]$right)]]$obs_test <- current_node_obs[rotated_x_new[right_node$var$split_var,current_node_obs]>=right_node$var_split_rule]
+
+                                        } else {
+                                                tree_aux[[paste0("node_",tree_aux[[leaf]]$right)]]$obs_test <- current_node_obs[x_new[current_node_obs, right_node$var]>=right_node$var_split_rule]
+                                        }
                                 }
 
 
@@ -439,3 +467,14 @@ gp_bart_predict <- function(gpbart_mod_example,
 
 }
 
+# x_test_m <- as.matrix(x_test)
+# x_test_m
+# gp_pred_test <- gp_bart_predict(gpbart_mod_example = gpbart_mod_example,x_new = x_test_m)
+# plot(y_test,gp_pred_test$y_hat_new_post %>% colMeans())
+#
+# #Calculating a bart model
+# bart_mod <- dbarts::bart(x.train = x_train,y.train = y_train,x.test = x_test)
+# plot(bart_mod$yhat.test.mean,y_test)
+#
+# crossprod((y_test-bart_mod$yhat.test.mean))
+# crossprod((y_test-gp_pred_test$y_hat_new_post %>% colMeans()))
