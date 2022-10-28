@@ -5,7 +5,7 @@ update_phi_gpbart <- function(tree,
                               phi_vector_p,
                               tau,
                               tau_mu,
-                              gp_variables){
+                              cov_gp){
 
         # Getting terminal nodes
         t_nodes <- get_terminals(tree)
@@ -17,10 +17,10 @@ update_phi_gpbart <- function(tree,
                 new_phi_vector_p <- phi_vector_p
                 new_phi_vector_p[i] <- phi_proposal
 
-                old_log_like <- Reduce("+",lapply(t_nodes, function(node){ node_loglikelihood_gpbart(node = node,res_vec = res_vec,x_train = x_train[,gp_variables],
-                                                                                          tau = tau,tau_mu = tau_mu,nu = nu,phi_vector = phi_vector_p)}))
-                new_log_like <- Reduce("+",lapply(t_nodes, function(node){ node_loglikelihood_gpbart(node = node,res_vec = res_vec,x_train = x_train[,gp_variables],
-                                                                                                     tau = tau,tau_mu = tau_mu,nu = nu,phi_vector = new_phi_vector_p)}))
+                old_log_like <- Reduce("+",lapply(t_nodes, function(node){ node_loglikelihood_gpbart(node = node,res_vec = res_vec,x_train = x_train[,cov_gp],
+                                                                                          tau = tau,tau_mu = tau_mu,nu = nu,phi_vector = phi_vector_p,gp_variables = cov_gp)}))
+                new_log_like <- Reduce("+",lapply(t_nodes, function(node){ node_loglikelihood_gpbart(node = node,res_vec = res_vec,x_train = x_train[,cov_gp],
+                                                                                                     tau = tau,tau_mu = tau_mu,nu = nu,phi_vector = new_phi_vector_p,gp_variables = cov_gp)}))
 
 
                 # Calculating acceptance
@@ -74,10 +74,11 @@ update_mu_node <- function(node,
                            tau,
                            tau_mu,
                            nu,
-                           phi_vector_p){
+                           phi_vector_p,
+                           gp_variables){
 
         # Calculating the x_train from node
-        x_train_node <- x_train[node$obs_train,,drop = FALSE]
+        x_train_node <- x_train[node$obs_train,gp_variables,drop = FALSE]
         res_node <- res_vec[node$obs_train]
         # Calculating the v factor from equation 11
         distance_sq_matrix <- symm_distance_matrix(m1 = x_train_node,phi_vector = phi_vector_p)
@@ -102,13 +103,15 @@ update_mu_gpbart <- function(tree,
                              nu,
                              phi_vector_p,
                              tau,
-                             tau_mu){
+                             tau_mu,
+                             cov_gp){
 
         # Getting terminal nodes
         t_nodes <- get_terminals(tree)
 
         new_t_nodes_tree <-lapply(t_nodes, function(node){ update_mu_node(node = node,x_train = x_train,res_vec = res_vec,
-                                                                          tau = tau,tau_mu = tau_mu,nu = nu,phi_vector_p = phi_vector_p)})
+                                                                          tau = tau,tau_mu = tau_mu,nu = nu,phi_vector_p = phi_vector_p,
+                                                                          gp_variables = cov_gp)})
 
         # Updating all nodes
         tree[names(t_nodes)] <- new_t_nodes_tree
@@ -126,11 +129,12 @@ update_g_node <- function(node,
                            tau_mu,
                            nu,
                            phi_vector_p,
-                           test_only = FALSE){
+                           test_only = FALSE,
+                           gp_variables){
 
         # Calculating the x_train from node
-        x_train_node <- x_train[node$obs_train,,drop = FALSE]
-        x_test_node <- x_test[node$obs_test,,drop = FALSE]
+        x_train_node <- x_train[node$obs_train,gp_variables,drop = FALSE]
+        x_test_node <- x_test[node$obs_test,gp_variables,drop = FALSE]
 
         # Creating the vetors
         g_sample <- numeric(nrow(x_train_node))
@@ -187,7 +191,8 @@ update_g_gpbart <- function(tree,
                             tau,
                             tau_mu,
                             nu,
-                            phi_vector_p){
+                            phi_vector_p,
+                            cov_gp){
 
         # new g
         g_sample_train <- numeric(nrow(x_train))
@@ -199,7 +204,7 @@ update_g_gpbart <- function(tree,
         for(i in 1:length(t_nodes)){
                g_aux <- update_g_node(node = t_nodes[[i]],x_train = x_train,x_test = x_test,
                                       res_vec = res_vec,tau = tau,
-                                      tau_mu = tau_mu,nu = nu,phi_vector_p = phi_vector_p)
+                                      tau_mu = tau_mu,nu = nu,phi_vector_p = phi_vector_p,gp_variables = cov_gp)
 
                g_sample_train[t_nodes[[i]]$obs_train] <- g_aux$train_sample
                g_sample_test[t_nodes[[i]]$obs_test] <- g_aux$test_sample

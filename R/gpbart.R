@@ -256,29 +256,29 @@ gp_bart <- function(x_train,
                                         current_trees[[t]] <- grow_gpbart(res_vec = partial_residuals,tree = current_trees[[t]],
                                                                           x_train = x_train,x_test = x_test,xcut = xcut,tau = tau,
                                                                           tau_mu = tau_mu,alpha = alpha,beta = beta,node_min_size = node_min_size,
-                                                                          nu = nu_vector[t],phi_vector_p = phi_vec_matrix[t,])
+                                                                          nu = nu_vector[t],phi_vector_p = phi_vec_matrix[t,],cov_gp = gp_variables_)
                                 } else if( verb == "grow_rotate"){
                                         current_trees[[t]] <- grow_rotation_gpbart(res_vec = partial_residuals,tree = current_trees[[t]],
                                                                                    x_train = x_train,x_test = x_test,xcut = xcut,tau = tau,
                                                                                    tau_mu = tau_mu, alpha = alpha,beta = beta,node_min_size = node_min_size,
-                                                                                   nu = nu_vector[t], phi_vector_p = phi_vec_matrix[t,],gp_variables = gp_variables_)
+                                                                                   nu = nu_vector[t], phi_vector_p = phi_vec_matrix[t,],cov_gp = gp_variables_)
 
                                 }else if( verb == "prune"){
                                         current_trees[[t]] <- prune_gpbart(res_vec = partial_residuals,
                                                                            x_train = x_train,
                                                                            tree = current_trees[[t]],
                                                                            tau = tau, tau_mu = tau_mu, alpha = alpha, beta = beta,
-                                                                           nu = nu_vector[t], phi_vector_p = phi_vec_matrix[t,])
+                                                                           nu = nu_vector[t], phi_vector_p = phi_vec_matrix[t,],cov_gp = gp_variables_)
                                 } else if( verb == "change"){
                                         current_trees[[t]] <- change_gpbart(res_vec = partial_residuals,tree = current_trees[[t]],
                                                                           x_train = x_train,x_test = x_test,xcut = xcut,tau = tau,
                                                                           tau_mu = tau_mu,alpha = alpha,beta = beta,node_min_size = node_min_size,
-                                                                          nu = nu_vector[t],phi_vector_p = phi_vec_matrix[t,])
+                                                                          nu = nu_vector[t],phi_vector_p = phi_vec_matrix[t,],cov_gp = gp_variables_)
                                 } else if (verb == "change_rotate"){
                                         current_trees[[t]] <- change_rotation_gpbart(res_vec = partial_residuals,tree = current_trees[[t]],
                                                                                    x_train = x_train,x_test = x_test,xcut = xcut,tau = tau,
                                                                                    tau_mu = tau_mu, alpha = alpha,beta = beta,node_min_size = node_min_size,
-                                                                                   nu = nu_vector[t], phi_vector_p = phi_vec_matrix[t,],gp_variables = gp_variables_)
+                                                                                   nu = nu_vector[t], phi_vector_p = phi_vec_matrix[t,],cov_gp = gp_variables_)
                                 } else {
                                         stop("Error no valid-verb")
                                 }
@@ -288,7 +288,7 @@ gp_bart <- function(x_train,
                                 # Changing for the current tree
                                 # Updating the phi
                                 phi_vec_matrix[t,] <- update_phi_gpbart(tree = current_trees[[t]],x_train = x_train,res_vec = partial_residuals,
-                                                          phi_vector_p = phi_vec_matrix[t,],nu = nu_vector[t],tau = tau,tau_mu = tau_mu,gp_variables = gp_variables_)
+                                                          phi_vector_p = phi_vec_matrix[t,],nu = nu_vector[t],tau = tau,tau_mu = tau_mu,cov_gp = gp_variables_)
 
 
                                 # nu_vector[t] <- update_nu_gpbart(tree = current_trees[[t]],x_train = x_train,res_vec = partial_residuals,
@@ -296,7 +296,7 @@ gp_bart <- function(x_train,
 
                                 # Update the mu values
                                 current_trees[[t]] <- update_mu_gpbart(tree = current_trees[[t]],x_train = x_train,res_vec = partial_residuals,nu = nu_vector[t],
-                                                                  phi_vector_p = phi_vec_matrix[t,],tau = tau,tau_mu = tau_mu)
+                                                                  phi_vector_p = phi_vec_matrix[t,],tau = tau,tau_mu = tau_mu,cov_gp = gp_variables_)
 
                                 # This one is the most complicated, I need to update the predictions based on the tree structure
                                 sample_g_aux <- update_g_gpbart(tree = current_trees[[t]],
@@ -306,7 +306,7 @@ gp_bart <- function(x_train,
                                                                 tau =  tau,
                                                                 tau_mu = tau_mu,
                                                                 nu = nu_vector[t],
-                                                                phi_vector_p = phi_vec_matrix[t,])
+                                                                phi_vector_p = phi_vec_matrix[t,],cov_gp = gp_variables_)
 
                                 y_train_hat_trees[t,] <- sample_g_aux$g_sample
                                 y_test_hat_trees[t,] <- sample_g_aux$g_sample_test

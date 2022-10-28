@@ -5,7 +5,8 @@ node_loglikelihood_gpbart <- function(node,
                                 tau,
                                 tau_mu,
                                 nu,
-                                phi_vector){
+                                phi_vector,
+                                gp_variables){
 
         # Slicing the current res_vec
         res_node <- res_vec[node$obs_train]
@@ -13,7 +14,7 @@ node_loglikelihood_gpbart <- function(node,
 
 
         # Subsetting x_train
-        x_train_node <- x_train[node$obs_train,,drop = FALSE]
+        x_train_node <- x_train[node$obs_train,gp_variables,drop = FALSE]
         sq_dist_matrix <- symm_distance_matrix(m1 = x_train_node,phi_vector = phi_vector)
         cov_function <- kernel_function(squared_distance_matrix_phi = sq_dist_matrix,nu = nu)+diag(1/tau,nrow = nrow(x_train_node)) + 1/tau_mu
 
@@ -37,7 +38,8 @@ grow_gpbart <- function(res_vec,
                  node_min_size,
                  # Passing by nu arguments
                  nu,
-                 phi_vector_p){
+                 phi_vector_p,
+                 cov_gp){
 
         # Getting the terminal nodes
         terminal_nodes <- get_terminals(tree)
@@ -139,15 +141,15 @@ grow_gpbart <- function(res_vec,
         tree_loglikeli <- node_loglikelihood_gpbart(res_vec = res_vec,node = left_node,
                                                     x_train = x_train,
                                                     tau = tau,tau_mu = tau_mu,nu = nu,
-                                                    phi_vector =  phi_vector_p) +
+                                                    phi_vector =  phi_vector_p,gp_variables = cov_gp) +
                 node_loglikelihood_gpbart(res_vec = res_vec,node = right_node,
                                           x_train = x_train,
                                           tau = tau,tau_mu = tau_mu,nu = nu,
-                                          phi_vector =  phi_vector_p) -
+                                          phi_vector =  phi_vector_p,gp_variables = cov_gp) -
                 node_loglikelihood_gpbart(res_vec = res_vec,node = g_node,
                                           x_train = x_train,
                                    tau = tau, tau_mu = tau_mu,
-                                   nu = nu,phi_vector =  phi_vector_p)
+                                   nu = nu,phi_vector =  phi_vector_p,gp_variables = cov_gp)
 
         # Calculate the transition
         transition_loglike <- log(0.3/nog_counter)-log(0.3/length(terminal_nodes)) # prob of getting from the new tree to the old (PRUNE), minus getting to the old to the new (GROW)
@@ -190,7 +192,7 @@ grow_rotation_gpbart <- function(res_vec,
                         # Passing by nu arguments
                         nu,
                         phi_vector_p,
-                        gp_variables){
+                        cov_gp){
 
         # Getting the terminal nodes
         terminal_nodes <- get_terminals(tree)
@@ -209,7 +211,7 @@ grow_rotation_gpbart <- function(res_vec,
         while(good_tree_index==0){
 
                 # Selecting the pair node that will be selected
-                split_var_pair <- sample(gp_variables,2)
+                split_var_pair <- sample(cov_gp,2)
 
                 # Selecting a valid split
                 split_var <- sample(split_var_pair,size = 1)
@@ -242,9 +244,9 @@ grow_rotation_gpbart <- function(res_vec,
                 # No valid tree found
                 if(length(xcut_valid) == 0 ){
 
-                        gp_variables <-  gp_variables[!(gp_variables %in% split_var_pair)]
+                        cov_gp <-  cov_gp[!(cov_gp %in% split_var_pair)]
 
-                        if(length(gp_variables)==0 || length(gp_variables)==1){
+                        if(length(cov_gp)==0 || length(cov_gp)==1){
                                 return(tree) # There are no valid candidates for this node
                         }
 
@@ -313,15 +315,15 @@ grow_rotation_gpbart <- function(res_vec,
         tree_loglikeli <- node_loglikelihood_gpbart(res_vec = res_vec,node = left_node,
                                                     x_train = x_train,
                                                     tau = tau,tau_mu = tau_mu,nu = nu,
-                                                    phi_vector =  phi_vector_p) +
+                                                    phi_vector =  phi_vector_p,gp_variables = cov_gp) +
                 node_loglikelihood_gpbart(res_vec = res_vec,node = right_node,
                                           x_train = x_train,
                                           tau = tau,tau_mu = tau_mu,nu = nu,
-                                          phi_vector =  phi_vector_p) -
+                                          phi_vector =  phi_vector_p,gp_variables = cov_gp) -
                 node_loglikelihood_gpbart(res_vec = res_vec,node = g_node,
                                           x_train = x_train,
                                           tau = tau, tau_mu = tau_mu,
-                                          nu = nu,phi_vector =  phi_vector_p)
+                                          nu = nu,phi_vector =  phi_vector_p,gp_variables = cov_gp)
 
         # Calculate the transition
         transition_loglike <- log(0.3/nog_counter)-log(0.3/length(terminal_nodes)) # prob of getting from the new tree to the old (PRUNE), minus getting to the old to the new (GROW)
@@ -359,7 +361,8 @@ prune_gpbart <- function(tree,
                   alpha,
                   beta,
                   nu,
-                  phi_vector_p){
+                  phi_vector_p,
+                  cov_gp){
 
         # Getting the node
         nog_nodes <- get_nog(tree = tree)
@@ -396,11 +399,11 @@ prune_gpbart <- function(tree,
 
         # Calculating the loglikelihood of the new tree
         tree_loglikeli <- node_loglikelihood_gpbart(res_vec = res_vec,node = p_node,tau = tau, tau_mu = tau_mu,
-                                                    x_train = x_train,nu = nu,phi_vector = phi_vector_p) -
+                                                    x_train = x_train,nu = nu,phi_vector = phi_vector_p,gp_variables = cov_gp) -
                 node_loglikelihood_gpbart(res_vec = res_vec,node = left_node,tau = tau,tau_mu = tau_mu,
-                                          x_train = x_train, nu = nu,phi_vector = phi_vector_p) -
+                                          x_train = x_train, nu = nu,phi_vector = phi_vector_p,gp_variables = cov_gp) -
                 node_loglikelihood_gpbart(res_vec = res_vec,node = right_node, tau = tau,tau_mu = tau_mu,
-                                          x_train = x_train, nu = nu,phi_vector = phi_vector_p)
+                                          x_train = x_train, nu = nu,phi_vector = phi_vector_p,gp_variables = cov_gp)
 
         # Calculate the transition
         transition_loglike <- log(0.3/(n_nogs))-log(0.3/length(n_terminal_nodes)) # prob of getting from the new tree to the old (PRUNE), minus getting to the old to the new (GROW)
@@ -445,7 +448,8 @@ change_gpbart <- function(res_vec,
                    beta,
                    node_min_size,
                    nu,
-                   phi_vector_p){
+                   phi_vector_p,
+                   cov_gp){
 
 
         # Getting the node
@@ -533,10 +537,10 @@ change_gpbart <- function(res_vec,
         }
 
         # Calculating the acceptance for two new nodes
-        tree_loglikeli <- node_loglikelihood_gpbart(res_vec = res_vec,x_train = x_train,node = new_left_node,tau = tau,tau_mu = tau_mu,nu = nu,phi_vector = phi_vector_p) +
-                node_loglikelihood_gpbart(res_vec = res_vec,x_train = x_train, node = new_right_node,tau = tau,tau_mu = tau_mu,nu = nu,phi_vector = phi_vector_p) -
-                node_loglikelihood_gpbart(res_vec = res_vec, x_train = x_train ,node = old_left_node, tau = tau,tau_mu = tau_mu,nu = nu,phi_vector = phi_vector_p) -
-                node_loglikelihood_gpbart(res_vec = res_vec, x_train = x_train, node = old_right_node,tau = tau, tau_mu = tau_mu,nu = nu,phi_vector = phi_vector_p)
+        tree_loglikeli <- node_loglikelihood_gpbart(res_vec = res_vec,x_train = x_train,node = new_left_node,tau = tau,tau_mu = tau_mu,nu = nu,phi_vector = phi_vector_p,gp_variables = cov_gp) +
+                node_loglikelihood_gpbart(res_vec = res_vec,x_train = x_train, node = new_right_node,tau = tau,tau_mu = tau_mu,nu = nu,phi_vector = phi_vector_p,gp_variables = cov_gp) -
+                node_loglikelihood_gpbart(res_vec = res_vec, x_train = x_train ,node = old_left_node, tau = tau,tau_mu = tau_mu,nu = nu,phi_vector = phi_vector_p,gp_variables = cov_gp) -
+                node_loglikelihood_gpbart(res_vec = res_vec, x_train = x_train, node = old_right_node,tau = tau, tau_mu = tau_mu,nu = nu,phi_vector = phi_vector_p,gp_variables = cov_gp)
 
         log_acceptance <- tree_loglikeli
 
@@ -569,7 +573,7 @@ change_rotation_gpbart <- function(res_vec,
                           nu,
                           phi_vector_p,
                           # Select the rotation
-                          gp_variables){
+                          cov_gp){
 
 
         # Getting the node
@@ -595,7 +599,7 @@ change_rotation_gpbart <- function(res_vec,
         while(good_tree_index==0){
 
                 # Getting the name of the changed node
-                split_var_pair <- sample(gp_variables,size = 2)
+                split_var_pair <- sample(cov_gp,size = 2)
 
                 # Selecting a valid split
                 split_var <- sample(split_var_pair,size = 1)
@@ -629,9 +633,9 @@ change_rotation_gpbart <- function(res_vec,
                 # No valid tree found
                 if(length(xcut_valid) == 0 ){
 
-                        gp_variables <-  gp_variables[!(gp_variables %in% split_var_pair)]
+                        cov_gp <-  cov_gp[!(cov_gp %in% split_var_pair)]
 
-                        if(length(gp_variables)==0 || length(gp_variables)==1){
+                        if(length(cov_gp)==0 || length(cov_gp)==1){
                                 return(tree) # There are no valid candidates for this node
                         }
 
@@ -677,10 +681,10 @@ change_rotation_gpbart <- function(res_vec,
         }
 
         # Calculating the acceptance for two new nodes
-        tree_loglikeli <- node_loglikelihood_gpbart(res_vec = res_vec,x_train = x_train,node = new_left_node,tau = tau,tau_mu = tau_mu,nu = nu,phi_vector = phi_vector_p) +
-                node_loglikelihood_gpbart(res_vec = res_vec,x_train = x_train, node = new_right_node,tau = tau,tau_mu = tau_mu,nu = nu,phi_vector = phi_vector_p) -
-                node_loglikelihood_gpbart(res_vec = res_vec, x_train = x_train ,node = old_left_node, tau = tau,tau_mu = tau_mu,nu = nu,phi_vector = phi_vector_p) -
-                node_loglikelihood_gpbart(res_vec = res_vec, x_train = x_train, node = old_right_node,tau = tau, tau_mu = tau_mu,nu = nu,phi_vector = phi_vector_p)
+        tree_loglikeli <- node_loglikelihood_gpbart(res_vec = res_vec,x_train = x_train,node = new_left_node,tau = tau,tau_mu = tau_mu,nu = nu,phi_vector = phi_vector_p,gp_variables = cov_gp) +
+                node_loglikelihood_gpbart(res_vec = res_vec,x_train = x_train, node = new_right_node,tau = tau,tau_mu = tau_mu,nu = nu,phi_vector = phi_vector_p,gp_variables = cov_gp) -
+                node_loglikelihood_gpbart(res_vec = res_vec, x_train = x_train ,node = old_left_node, tau = tau,tau_mu = tau_mu,nu = nu,phi_vector = phi_vector_p,gp_variables = cov_gp) -
+                node_loglikelihood_gpbart(res_vec = res_vec, x_train = x_train, node = old_right_node,tau = tau, tau_mu = tau_mu,nu = nu,phi_vector = phi_vector_p,gp_variables = cov_gp)
 
         log_acceptance <- tree_loglikeli
 
