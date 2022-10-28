@@ -288,7 +288,7 @@ gp_bart <- function(x_train,
                                 # Changing for the current tree
                                 # Updating the phi
                                 phi_vec_matrix[t,] <- update_phi_gpbart(tree = current_trees[[t]],x_train = x_train,res_vec = partial_residuals,
-                                                          phi_vector_p = phi_vec_matrix[t,],nu = nu_vector[t],tau = tau,tau_mu = tau_mu)
+                                                          phi_vector_p = phi_vec_matrix[t,],nu = nu_vector[t],tau = tau,tau_mu = tau_mu,gp_variables = gp_variables_)
 
 
                                 # nu_vector[t] <- update_nu_gpbart(tree = current_trees[[t]],x_train = x_train,res_vec = partial_residuals,

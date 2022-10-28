@@ -4,23 +4,27 @@ update_phi_gpbart <- function(tree,
                               nu,
                               phi_vector_p,
                               tau,
-                              tau_mu){
+                              tau_mu,
+                              gp_variables){
 
         # Getting terminal nodes
         t_nodes <- get_terminals(tree)
 
+        up_crossings <- c(0.001,0.01,0.05,0.1,0.5,1,2,5,10,100)
+
         for(i in 1:length(phi_vector_p)){
-                phi_proposal <- stats::runif(n = 1,min = 0,max = 10)
+                phi_proposal <- sample(x = 1/(2*pi*up_crossings),size = 1)
                 new_phi_vector_p <- phi_vector_p
                 new_phi_vector_p[i] <- phi_proposal
 
-                old_log_like <- Reduce("+",lapply(t_nodes, function(node){ node_loglikelihood_gpbart(node = node,res_vec = res_vec,x_train = x_train,
+                old_log_like <- Reduce("+",lapply(t_nodes, function(node){ node_loglikelihood_gpbart(node = node,res_vec = res_vec,x_train = x_train[,gp_variables],
                                                                                           tau = tau,tau_mu = tau_mu,nu = nu,phi_vector = phi_vector_p)}))
-                new_log_like <- Reduce("+",lapply(t_nodes, function(node){ node_loglikelihood_gpbart(node = node,res_vec = res_vec,x_train = x_train,
+                new_log_like <- Reduce("+",lapply(t_nodes, function(node){ node_loglikelihood_gpbart(node = node,res_vec = res_vec,x_train = x_train[,gp_variables],
                                                                                                      tau = tau,tau_mu = tau_mu,nu = nu,phi_vector = new_phi_vector_p)}))
 
+
                 # Calculating acceptance
-                acceptance <- exp(new_log_like-old_log_like)
+                acceptance <- exp(new_log_like-old_log_like + stats::dgamma(x = phi_proposal,shape = 5,rate = 1,log = TRUE) - stats::dgamma(x = phi_vector_p[i],shape = 5,rate = 1,log = TRUE))
 
                 if(stats::runif(n = 1,min = 0,max = 1)<=acceptance){
                         phi_vector_p <- new_phi_vector_p
