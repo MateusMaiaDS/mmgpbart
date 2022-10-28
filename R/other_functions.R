@@ -32,3 +32,17 @@ crps <- function(y,means,sds){
 
         return(list(CRPS = mean(crps_vector), crps = crps_vector))
 }
+
+
+# Normalize BART function (Same way ONLY THE COVARIATE NOW)
+normalize_covariates_bart <- function(y, a = NULL, b = NULL) {
+
+        # Defining the a and b
+        if( is.null(a) & is.null(b)){
+                a <- min(y)
+                b <- max(y)
+        }
+        # This will normalize y between -0.5 and 0.5
+        y  <- (y - a)/(b - a)
+        return(y)
+}

@@ -21,6 +21,7 @@ gp_bart <- function(x_train,
                  bart_boolean = FALSE,
                  keeptrees = FALSE,
                  bart_warmup = 250,
+                 x_scale = FALSE,
                  gp_variables_){
 
 
@@ -41,6 +42,37 @@ gp_bart <- function(x_train,
         a_min <- min(y_train)
         b_max <- max(y_train)
 
+
+        # Scaling the x
+        if(x_scale){
+
+                # Getting the x values
+                x_min <- apply(rbind(x_train),2,min)
+                x_max <- apply(rbind(x_train),2,max)
+
+                # Getting the training original
+                x_train_original <- x_train
+                x_test_original <- x_test
+
+                # # Creating the xscale_train/test
+                xscale_train <- x_train
+                xscale_test <- x_test
+
+                # Normalize all the columns
+                for(i in 1:ncol(x_train)){
+                        xscale_train[,i] <- normalize_covariates_bart(y = x_train[,i],a = x_min[i],b = x_max[i])
+                        xscale_test[,i] <- normalize_covariates_bart(y = x_test[,i],a = x_min[i],b = x_max[i])
+                }
+
+
+                # The result of scaling
+                x_train <- as.matrix(xscale_train)
+                x_test <- as.matrix(xscale_test)
+
+        } else{
+                x_train_original <- x_train
+                x_test_original <- x_test
+        }
 
         # Cut matrix
         xcut <- matrix(NA,ncol = ncol(x_train),nrow = numcut)
