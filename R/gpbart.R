@@ -163,7 +163,7 @@ gp_bart <- function(x_train,
         all_tree_prediction <- vector("list", length = n_post)
 
         # Initialising values for phi_vec, and nu
-        phi_vec_matrix <- matrix(1, nrow = n_tree,ncol = ncol(x_train))
+        phi_vec_matrix <- matrix(1, nrow = n_tree,ncol = ncol(x_train[,gp_variables_, drop = FALSE]))
         phi_post <- list(n_post)
         nu_vector <- rep(16*n_tree,n_tree)
         nu_post <- matrix(NA,nrow = n_post, ncol = n_tree)
