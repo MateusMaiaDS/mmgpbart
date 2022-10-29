@@ -13,7 +13,8 @@ update_phi_gpbart <- function(tree,
         up_crossings <- c(0.001,0.01,0.05,0.1,0.5,1,2,5,10,100)
 
         for(i in 1:length(phi_vector_p)){
-                phi_proposal <- sample(x = 1/(2*pi*up_crossings),size = 1)
+                # phi_proposal <- sample(x = 1/(2*pi*up_crossings),size = 1)
+                phi_proposal <- stats::runif(n = 1,min = 0,max = 20)
                 new_phi_vector_p <- phi_vector_p
                 new_phi_vector_p[i] <- phi_proposal
 
