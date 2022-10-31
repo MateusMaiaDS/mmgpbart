@@ -13,5 +13,6 @@ RoxygenNote: 7.2.1
 LinkingTo: 
     Rcpp
 Imports: 
+    Matrix,
     mvnfast,
     Rcpp

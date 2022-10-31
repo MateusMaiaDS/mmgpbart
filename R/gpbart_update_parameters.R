@@ -293,8 +293,8 @@ update_single_nu <- function(current_trees,
         new_nu_log <- mvnfast::dmvn(X = y_train,mu = as.matrix(y_post_mean),sigma = (proposal_nu^(-1))*kernel_post_cov+diag(tau^-1,nrow = nrow(x_train)),log = TRUE)
 
         # Addin gthe prior term
-        prior_old <- dgamma(x = current_nu,shape = 16*n_tree*0.1,rate = 0.1,log = TRUE)
-        prior_new <- dgamma(x = proposal_nu,shape = 16*n_tree*0.1,rate = 0.1,log = TRUE)
+        prior_old <- stats::dgamma(x = current_nu,shape = 16*n_tree*0.1,rate = 0.1,log = TRUE)
+        prior_new <- stats::dgamma(x = proposal_nu,shape = 16*n_tree*0.1,rate = 0.1,log = TRUE)
 
         acceptance <- new_nu_log-old_nu_log+prior_new-prior_old
 
