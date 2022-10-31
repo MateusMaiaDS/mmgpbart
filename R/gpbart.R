@@ -23,7 +23,7 @@ gp_bart <- function(x_train,
                  bart_warmup = 250,
                  x_scale = FALSE,
                  gp_variables_,
-                 rotation_variables_){
+                 rotation_variables_ = NULL){
 
 
         # Verifying if x_train and x_test are matrices
@@ -252,6 +252,17 @@ gp_bart <- function(x_train,
                                 if(length(current_trees[[t]])==1){
                                         verb <- sample(c("grow","grow_rotate"),size = 1)
                                 }
+
+
+                                # Restricting the case where there are no rotation
+                                if(verb == "grow_rotate" & is.null(rotation_variables_)){
+                                        verb <- "grow"
+                                }
+
+                                if(verb == "change_rotate" & is.null(rotation_variables_)){
+                                        verb <- "change"
+                                }
+
                                 # Selecting one verb movement
                                 if(verb == "grow"){
                                         current_trees[[t]] <- grow_gpbart(res_vec = partial_residuals,tree = current_trees[[t]],
