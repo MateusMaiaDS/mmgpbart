@@ -312,6 +312,8 @@ grow_rotation_gpbart <- function(res_vec,
         # Get nog counter ( FOR THE NEW TREE )
         nog_counter <- count_nog(tree = tree[-g_node_position]) + 1
 
+        print(cov_gp)
+
         # Calculating the acceptance for two new nodes
         tree_loglikeli <- node_loglikelihood_gpbart(res_vec = res_vec,node = left_node,
                                                     x_train = x_train,
