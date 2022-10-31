@@ -215,7 +215,7 @@ grow_rotation_gpbart <- function(res_vec,
                 split_var_pair <- sample(rotation_variables,2)
 
                 # Selecting a valid split
-                split_var <- sample(rotation_variables,size = 1)
+                split_var <- sample(split_var_pair,size = 1)
 
                 # Selecting an angle to rotate my coordinates
                 theta <- stats::runif(n = 1,min = 0,max = pi)
