@@ -218,3 +218,90 @@ update_g_gpbart <- function(tree,
         return(list(g_sample = g_sample_train, g_sample_test = g_sample_test))
 }
 
+# Tree permutation matrix
+s_permutation <- function(tree,
+                          x_train){
+        t_nodes <- get_terminals(tree)
+        mu_vec <- numeric(nrow(x_train))
+        permutation_matrix <- matrix(0, nrow = nrow(x_train) , ncol = nrow(x_train))
+
+        # Get train obs index
+        all_index <- do.call(c,lapply(t_nodes,function(x){x$obs_train}))
+        all_mu <- do.call(c,lapply(t_nodes, function(x){rep(x$mu,length(x$obs_train))}))
+        for(i in 1:nrow(permutation_matrix)){
+                permutation_matrix[i,all_index[i]] <- 1
+                mu_vec[all_index[i]] <- all_mu[i]
+        }
+
+        return(list(permutation_matrix = permutation_matrix,
+                    mu_vec = mu_vec))
+
+}
+
+
+# Verification of the thing that I want to do
+# node_one_index <- tree$node_1$obs_train
+# permutation_test <- s_permutation(tree = current_trees[[1]],x_train = x_train)
+# cov_node_one <- symm_distance_matrix(m1 = x_train[node_one_index,,drop = FALSE],phi_vector = rep(1,5))
+# cov_node_one_perm <- permutation_test%*%symm_distance_matrix(m1 = x_train,phi_vector = rep(1,5))%*%t(permutation_test)
+# cov_node_one==cov_node_one_perm[1:24,1:24]
+
+# NEED TO DO A TEST TO SEE IF MY ORIGINAL DISTANCE MATRIX WILL BE RETURNED BY THE PRODUCT OF THE PERMUTATION MATRIX
+
+
+# Updating a single nu
+update_single_nu <- function(current_trees,
+                             phi_matrix,
+                             x_train,
+                             current_nu,
+                             y_train,
+                             tau){
+
+
+        # Getting n_tree
+        n_tree <- length(current_trees)
+
+        # Getting the current_nu
+        proposal_nu <- stats::runif(n = 1,min = 0.5*current_nu,max = 1.5*current_nu)
+
+        # Creating the list of terminal nodes
+        list_terminal_nodes_cov <- vector("list",length = length(current_trees))
+        list_mus <- vector("list",length = length(current_trees))
+        list_distance_matrix <- vector("list",length = length(current_trees))
+        # list_terminal_nodes_cov <- list()
+        list_mus <- list()
+
+        for(t in 1:length(current_trees)){
+
+                # Permutation and nu elements
+                perm_aux <- s_permutation(tree = current_trees[[t]],x_train = x_train)
+                list_terminal_nodes_cov[[t]] <- perm_aux$permutation_matrix
+                list_mus[[t]] <- perm_aux$mu_vec
+                list_distance_matrix[[t]] <- symm_distance_matrix(m1 = x_train,phi_vector = phi_matrix[t,])
+        }
+
+        # Creating the big distance block matrix
+        big_block_permutation <- do.call(cbind,list_terminal_nodes_cov)
+        big_block_distance <- Matrix::bdiag(list_distance_matrix)
+        big_long_mean_matrix <- do.call(c,list_mus)
+
+        # Calcualting the dmn.mean
+        y_post_mean <- big_block_permutation%*%big_long_mean_matrix
+        y_post_cov <- big_block_permutation%*%big_block_distance%*%t(big_block_permutation)
+        kernel_post_cov <- kernel_function(as.matrix(y_post_cov),nu = 1)
+        old_nu_log <- mvnfast::dmvn(X = y_train,mu = as.matrix(y_post_mean),sigma = (current_nu^(-1))*kernel_post_cov+diag(tau^-1,nrow = nrow(x_train)),log = TRUE)
+        new_nu_log <- mvnfast::dmvn(X = y_train,mu = as.matrix(y_post_mean),sigma = (proposal_nu^(-1))*kernel_post_cov+diag(tau^-1,nrow = nrow(x_train)),log = TRUE)
+
+        # Addin gthe prior term
+        prior_old <- dgamma(x = current_nu,shape = 16*n_tree*0.1,rate = 0.1,log = TRUE)
+        prior_new <- dgamma(x = proposal_nu,shape = 16*n_tree*0.1,rate = 0.1,log = TRUE)
+
+        acceptance <- new_nu_log-old_nu_log+prior_new-prior_old
+
+        if(stats::runif(n = 1) < exp(acceptance)){
+                return(proposal_nu)
+        } else {
+                return(current_nu)
+        }
+}
+
