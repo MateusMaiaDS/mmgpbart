@@ -192,7 +192,8 @@ grow_rotation_gpbart <- function(res_vec,
                         # Passing by nu arguments
                         nu,
                         phi_vector_p,
-                        cov_gp){
+                        cov_gp,
+                        rotation_variables){
 
         # Getting the terminal nodes
         terminal_nodes <- get_terminals(tree)
@@ -204,17 +205,17 @@ grow_rotation_gpbart <- function(res_vec,
         g_node_position_orig <- which(names(tree) ==g_node_name)
 
         # Initializing the sample
-        split_var_candidates <- 1:ncol(x_train)
+        split_var_candidates <- 1:length(rotation_variables)
         good_tree_index <- 0
 
 
         while(good_tree_index==0){
 
                 # Selecting the pair node that will be selected
-                split_var_pair <- sample(cov_gp,2)
+                split_var_pair <- sample(rotation_variables,2)
 
                 # Selecting a valid split
-                split_var <- sample(split_var_pair,size = 1)
+                split_var <- sample(rotation_variables,size = 1)
 
                 # Selecting an angle to rotate my coordinates
                 theta <- stats::runif(n = 1,min = 0,max = pi)
@@ -244,9 +245,9 @@ grow_rotation_gpbart <- function(res_vec,
                 # No valid tree found
                 if(length(xcut_valid) == 0 ){
 
-                        cov_gp <-  cov_gp[!(cov_gp %in% split_var_pair)]
+                        rotation_variables <-  rotation_variables[!(rotation_variables %in% split_var_pair)]
 
-                        if(length(cov_gp)==0 || length(cov_gp)==1){
+                        if(length(rotation_variables)==0 || length(rotation_variables)==1){
                                 return(tree) # There are no valid candidates for this node
                         }
 
@@ -573,7 +574,8 @@ change_rotation_gpbart <- function(res_vec,
                           nu,
                           phi_vector_p,
                           # Select the rotation
-                          cov_gp){
+                          cov_gp,
+                          rotation_variables){
 
 
         # Getting the node
@@ -599,7 +601,7 @@ change_rotation_gpbart <- function(res_vec,
         while(good_tree_index==0){
 
                 # Getting the name of the changed node
-                split_var_pair <- sample(cov_gp,size = 2)
+                split_var_pair <- sample(rotation_variables,size = 2)
 
                 # Selecting a valid split
                 split_var <- sample(split_var_pair,size = 1)
@@ -633,9 +635,9 @@ change_rotation_gpbart <- function(res_vec,
                 # No valid tree found
                 if(length(xcut_valid) == 0 ){
 
-                        cov_gp <-  cov_gp[!(cov_gp %in% split_var_pair)]
+                        rotation_variables <-  rotation_variables[!(rotation_variables %in% split_var_pair)]
 
-                        if(length(cov_gp)==0 || length(cov_gp)==1){
+                        if(length(rotation_variables)==0 || length(rotation_variables)==1){
                                 return(tree) # There are no valid candidates for this node
                         }
 

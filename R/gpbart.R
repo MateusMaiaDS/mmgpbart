@@ -22,7 +22,8 @@ gp_bart <- function(x_train,
                  keeptrees = FALSE,
                  bart_warmup = 250,
                  x_scale = FALSE,
-                 gp_variables_){
+                 gp_variables_,
+                 rotation_variables_){
 
 
         # Verifying if x_train and x_test are matrices
@@ -261,7 +262,8 @@ gp_bart <- function(x_train,
                                         current_trees[[t]] <- grow_rotation_gpbart(res_vec = partial_residuals,tree = current_trees[[t]],
                                                                                    x_train = x_train,x_test = x_test,xcut = xcut,tau = tau,
                                                                                    tau_mu = tau_mu, alpha = alpha,beta = beta,node_min_size = node_min_size,
-                                                                                   nu = nu_vector[t], phi_vector_p = phi_vec_matrix[t,],cov_gp = gp_variables_)
+                                                                                   nu = nu_vector[t], phi_vector_p = phi_vec_matrix[t,],cov_gp = gp_variables_,
+                                                                                   rotation_variables = rotation_variables_)
 
                                 }else if( verb == "prune"){
                                         current_trees[[t]] <- prune_gpbart(res_vec = partial_residuals,
@@ -278,7 +280,8 @@ gp_bart <- function(x_train,
                                         current_trees[[t]] <- change_rotation_gpbart(res_vec = partial_residuals,tree = current_trees[[t]],
                                                                                    x_train = x_train,x_test = x_test,xcut = xcut,tau = tau,
                                                                                    tau_mu = tau_mu, alpha = alpha,beta = beta,node_min_size = node_min_size,
-                                                                                   nu = nu_vector[t], phi_vector_p = phi_vec_matrix[t,],cov_gp = gp_variables_)
+                                                                                   nu = nu_vector[t], phi_vector_p = phi_vec_matrix[t,],cov_gp = gp_variables_,
+                                                                                   rotation_variables = rotation_variables_)
                                 } else {
                                         stop("Error no valid-verb")
                                 }
