@@ -466,7 +466,7 @@ change_gpbart <- function(res_vec,
         nog_nodes <- get_nog(tree = tree)
         n_terminal_nodes <- length(get_terminals(tree = tree))
 
-        if(length(tree)==0){
+        if(length(tree)==1 || length(tree) == 0){
                 return(tree)
         }
         # Sample a node to be pruned
@@ -475,7 +475,6 @@ change_gpbart <- function(res_vec,
         if(nog_nodes_index!=0 & length(nog_nodes)!=0){
                 c_node <- nog_nodes[[nog_nodes_index]]
         }
-
 
         good_tree_index <- 0
 
@@ -603,7 +602,7 @@ change_rotation_gpbart <- function(res_vec,
         nog_nodes <- get_nog(tree = tree)
         n_terminal_nodes <- length(get_terminals(tree = tree))
 
-        if(length(tree)==0){
+        if(length(tree)==1 || length(tree)==0){
                 return(tree)
         }
 
