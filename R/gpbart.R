@@ -22,6 +22,7 @@ gp_bart <- function(x_train,
                  keeptrees = FALSE,
                  bart_warmup = 250,
                  x_scale = FALSE,
+                 update_nu = TRUE,
                  gp_variables_,
                  rotation_variables_ = NULL){
 
@@ -166,7 +167,7 @@ gp_bart <- function(x_train,
         # Initialising values for phi_vec, and nu
         phi_vec_matrix <- matrix(1, nrow = n_tree,ncol = ncol(x_train[,gp_variables_, drop = FALSE]))
         phi_post <- list(n_post)
-        nu <- 16*n_tree
+        nu <- 4*(K_bart^2)*n_tree
         nu_post <- numeric(n_post)
 
         tau_post <- numeric(n_post)
@@ -351,8 +352,12 @@ gp_bart <- function(x_train,
                 # Storing tau and getting new tau
                 tau <- update_tau(y = y_scale,y_hat = colSums(y_train_hat_trees),a_tau = a_tau,d_tau = d_tau)
 
-                # nu <- update_single_nu(current_trees = current_trees,y_train = colSums(y_train_hat_trees),
-                #                        current_nu = nu,phi_matrix = phi_vec_matrix,x_train = x_train,tau = tau)
+
+                # Adding the option of updating nu or not
+                if(update_nu & !(bart_boolean)){
+                        nu <- update_single_nu(current_trees = current_trees,y_train = colSums(y_train_hat_trees),
+                                               current_nu = nu,phi_matrix = phi_vec_matrix,x_train = x_train,tau = tau)
+                }
 
                 tau_post[i] <- tau
 
