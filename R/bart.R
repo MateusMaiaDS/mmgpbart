@@ -577,7 +577,7 @@ change_rotation <- function(res_vec,
 
 
         # If there is only the stump
-        if(length(tree)==0){
+        if(length(tree)==1){
                 return(tree)
         }
 
