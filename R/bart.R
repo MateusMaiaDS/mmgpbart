@@ -447,6 +447,8 @@ change <- function(res_vec,
         n_terminal_nodes <- length(get_terminals(tree = tree))
 
 
+        # cat("NoG: ", length(nog_nodes), "   ||  Tree size", length(tree), "\n" )
+
         # Sample a node to be pruned
         nog_nodes_index <- sample(1:length(nog_nodes),size = 1)
 
@@ -455,8 +457,12 @@ change <- function(res_vec,
         }
 
         # Case of just one split
-        if( length(tree)==3){
+        if( (length(nog_nodes)==0) & (length(tree)==3)){
                 c_node <- tree[[1]] ## Getting the root node
+        }
+
+        if(length(tree)<3){
+                return(tree)
         }
 
         good_tree_index <- 0
@@ -591,8 +597,12 @@ change_rotation <- function(res_vec,
 
 
         # Case of just one split
-        if( length(tree)==3){
+        if( (length(nog_nodes)==0) & (length(tree)==3)){
                 c_node <- tree[[1]] ## Getting the root node
+        }
+
+        if(length(tree)<3){
+                return(tree)
         }
 
         # Case of just one split
