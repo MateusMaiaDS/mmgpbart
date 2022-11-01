@@ -469,6 +469,12 @@ change_gpbart <- function(res_vec,
         if(length(tree)==1 || length(tree) == 0){
                 return(tree)
         }
+
+        # Case of just one split
+        if( length(tree)==3){
+                c_node <- tree[[1]] ## Getting the root node
+        }
+
         # Sample a node to be pruned
         nog_nodes_index <- sample(1:length(nog_nodes),size = 1)
 
@@ -485,8 +491,6 @@ change_gpbart <- function(res_vec,
         while(good_tree_index==0){
                 # Selecting a valid split
                 split_var <- sample(split_var_candidates,size = 1)
-
-
 
                 # Case of invalid max
                 if((length(x_train[c_node$obs_train,split_var])-node_min_size)<1){
@@ -604,6 +608,11 @@ change_rotation_gpbart <- function(res_vec,
 
         if(length(tree)==1 || length(tree)==0){
                 return(tree)
+        }
+
+        # Case of just one split
+        if( length(tree)==3){
+                c_node <- tree[[1]] ## Getting the root node
         }
 
         # Sample a node to be pruned

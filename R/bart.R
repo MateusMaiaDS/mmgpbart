@@ -446,6 +446,7 @@ change <- function(res_vec,
         nog_nodes <- get_nog(tree = tree)
         n_terminal_nodes <- length(get_terminals(tree = tree))
 
+
         # Sample a node to be pruned
         nog_nodes_index <- sample(1:length(nog_nodes),size = 1)
 
