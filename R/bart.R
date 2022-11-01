@@ -127,7 +127,10 @@ grow <- function(res_vec,
         left_test_id <- g_node$obs_test[which(x_test[g_node$obs_test,split_var]<=split_var_sampled_rule)]
         right_test_id <- g_node$obs_test[which(x_test[g_node$obs_test,split_var]>split_var_sampled_rule)]
 
-
+        # No valid tree
+        if((length(left_train_id) < node_min_size) || (length(right_train_id)<node_min_size)){
+                return(tree)
+        }
 
         # Creating the left node
         left_node <- list(index = max_index+1,
@@ -675,6 +678,12 @@ change_rotation <- function(res_vec,
 
         left_test_id <- c_node$obs_test[which(rotated_x_test[split_var,c_node$obs_test]<=split_var_sampled_rule_rotation)]
         right_test_id <- c_node$obs_test[which(rotated_x_test[split_var,c_node$obs_test]>split_var_sampled_rule_rotation)]
+
+
+        # No valid tree
+        if((length(left_train_id) < node_min_size) || (length(right_train_id)<node_min_size)){
+                return(tree)
+        }
 
         # Getting the left and the right
         new_left_name <- paste0("node_",c_node$left)

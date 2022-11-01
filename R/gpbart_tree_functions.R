@@ -483,6 +483,10 @@ change_gpbart <- function(res_vec,
                 c_node <- tree[[1]] ## Getting the root node
         }
 
+        if((length(nog_nodes) == 0) & length(tree)!=3){
+                return(tree)
+        }
+
         good_tree_index <- 0
 
         # Getting the name of the changed node
@@ -617,6 +621,11 @@ change_rotation_gpbart <- function(res_vec,
         # Case of just one split
         if( length(tree)==3){
                 c_node <- tree[[1]] ## Getting the root node
+        }
+
+
+        if((length(nog_nodes) == 0) & length(tree)!=3){
+                return(tree)
         }
 
         good_tree_index <- 0
