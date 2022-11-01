@@ -607,11 +607,6 @@ change_rotation_gpbart <- function(res_vec,
                 return(tree)
         }
 
-        # Case of just one split
-        if( length(tree)==3){
-                c_node <- tree[[1]] ## Getting the root node
-        }
-
         # Sample a node to be pruned
         nog_nodes_index <- sample(1:length(nog_nodes),size = 1)
 
@@ -619,10 +614,12 @@ change_rotation_gpbart <- function(res_vec,
                 c_node <- nog_nodes[[nog_nodes_index]]
         }
 
+        # Case of just one split
+        if( length(tree)==3){
+                c_node <- tree[[1]] ## Getting the root node
+        }
 
         good_tree_index <- 0
-
-
 
         while(good_tree_index==0){
 
