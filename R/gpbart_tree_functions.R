@@ -59,9 +59,15 @@ grow_gpbart <- function(res_vec,
                 # Selecting a valid split
                 split_var <- sample(split_var_candidates,size = 1)
 
+                # Avoiding invalid max.
+                if((length(x_train[g_node$obs_train,split_var])-node_min_size)<1){
+                        return(tree)
+                }
+
                 # Getting the min and maximum observed value within the terminal node
                 min_node_obs <- sort(x_train[g_node$obs_train,split_var])[node_min_size]
                 max_node_obs <- sort(x_train[g_node$obs_train,split_var])[length(x_train[g_node$obs_train,split_var])-node_min_size]
+
 
                 # Getting the column from xcut
                 xcut_valid <- xcut[which(xcut[,split_var]>=min_node_obs & xcut[,split_var]<=max_node_obs),split_var]
@@ -228,6 +234,9 @@ grow_rotation_gpbart <- function(res_vec,
                 rotated_x_test <- tcrossprod(A(theta), x_test[,split_var_pair])
                 rownames(rotated_x_test) <- split_var_pair
 
+                if((length(rotated_x[split_var,g_node$obs_train])-node_min_size)<1){
+                        return(tree)
+                }
 
                 # Getting the min and maximum observed value within the terminal node
                 min_node_obs <- sort(rotated_x[split_var,g_node$obs_train])[node_min_size]
@@ -478,6 +487,14 @@ change_gpbart <- function(res_vec,
                 # Selecting a valid split
                 split_var <- sample(split_var_candidates,size = 1)
 
+
+
+                # Case of invalid max
+                if((length(x_train[c_node$obs_train,split_var])-node_min_size)<1){
+                        return(tree)
+                }
+
+
                 # Getting the min and maximum observed value within the terminal node
                 min_node_obs <- sort(x_train[c_node$obs_train,split_var])[node_min_size]
                 max_node_obs <- sort(x_train[c_node$obs_train,split_var])[length(x_train[c_node$obs_train,split_var])-node_min_size]
@@ -491,9 +508,13 @@ change_gpbart <- function(res_vec,
 
                         split_var_candidates <-  split_var_candidates[-which(split_var==split_var_candidates)]
 
+
                         if(length(split_var_candidates)==0){
                                 return(tree) # There are no valid candidates for this node
                         }
+
+
+
 
                 } else {
                         good_tree_index <- 1
@@ -632,6 +653,13 @@ change_rotation_gpbart <- function(res_vec,
                 xcut_valid <- xcut_rotated[split_var,which(xcut_rotated[split_var,]>=min_node_obs & xcut_rotated[split_var,]<=max_node_obs)]
 
 
+                # Case of invalid max
+                if((length(rotated_x[split_var,c_node$obs_train])-node_min_size)<1){
+                        return(tree)
+                }
+
+
+
                 # No valid tree found
                 if(length(xcut_valid) == 0 ){
 
@@ -640,6 +668,8 @@ change_rotation_gpbart <- function(res_vec,
                         if(length(rotation_variables)==0 || length(rotation_variables)==1){
                                 return(tree) # There are no valid candidates for this node
                         }
+
+
 
                 } else {
                         good_tree_index <- 1

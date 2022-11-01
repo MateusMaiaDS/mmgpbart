@@ -184,7 +184,7 @@ gp_bart <- function(x_train,
 
         # Checking if the correct number of bart_warmup iterations were selected
         if(n_burn < bart_warmup){
-                (" The number of burn iterations cannot be smaller then the BART warm-up")
+                warning(" BART iterations are being used to predict the model")
         }
 
         for(i in 1:n_mcmc){
@@ -197,7 +197,7 @@ gp_bart <- function(x_train,
                 for(t in 1:n_tree){
 
                         # Adding BART warmup iterations
-                        if(n_mcmc > bart_warmup) {
+                        if(i > bart_warmup) {
                                 bart_boolean <- FALSE
                         }
 
@@ -206,17 +206,33 @@ gp_bart <- function(x_train,
                                 partial_residuals <- y_scale - colSums(y_train_hat_trees[-t,,drop = FALSE])
 
                                 # Selecting one verb
-                                verb <- sample(c("grow","prune","change"), prob = c(0.3,0.3,0.4),size = 1)
+                                verb <- sample(c("grow","grow_rotation","prune","change","change_rotation"), prob = c(0.15,0.15,0.3,0.2,0.2),size = 1)
 
                                 if(length(current_trees[[t]])==1){
+                                        verb <- sample(c("grow","grow_rotation"),size = 1)
+                                }
+
+                                # For the case where the name is null
+                                if( (verb == "grow_rotation") & is.null(rotation_variables_) ){
                                         verb <- "grow"
                                 }
+
+                                if( (verb == "change_rotation") & is.null(rotation_variables_) ){
+                                        verb <- "change"
+                                }
+
+
 
                                 # Selecting a new tree
                                 current_trees[[t]]  <- if(verb=="grow"){
                                         grow(res_vec = partial_residuals,tree = current_trees[[t]],
                                              x_train = x_train,x_test = x_test,xcut = xcut,tau = tau,
                                              tau_mu = tau_mu,alpha = alpha,beta = beta,node_min_size = node_min_size)
+                                } else if(verb == "grow_rotation") {
+                                        grow_rotation(res_vec = partial_residuals,tree = current_trees[[t]],
+                                                      x_train = x_train,x_test = x_test,xcut = xcut,tau = tau,
+                                                      tau_mu = tau_mu,alpha = alpha,beta = beta,node_min_size = node_min_size,
+                                                      rotation_variables = rotation_variables_)
                                 } else if(verb=="prune"){
                                         prune(tree = current_trees[[t]],res_vec = partial_residuals,
                                               tau = tau,tau_mu = tau_mu,alpha = alpha,beta = beta)
@@ -224,6 +240,13 @@ gp_bart <- function(x_train,
                                         change(res_vec = partial_residuals,tree = current_trees[[t]],
                                                x_train = x_train,x_test = x_test,xcut = xcut,
                                                tau = tau,tau_mu = tau_mu,alpha = alpha,beta = beta,node_min_size = node_min_size)
+                                } else if(verb == "change_rotation") {
+                                        change_rotation(res_vec = partial_residuals,tree = current_trees[[t]],
+                                                        x_train = x_train,x_test = x_test,xcut = xcut,tau = tau,
+                                                        tau_mu = tau_mu,alpha = alpha,beta = beta,node_min_size = node_min_size,
+                                                        rotation_variables = rotation_variables_)
+                                } else {
+                                        stop("No valid verb for BART approach")
                                 }
 
                                 # Updating mu
@@ -328,8 +351,8 @@ gp_bart <- function(x_train,
                 # Storing tau and getting new tau
                 tau <- update_tau(y = y_scale,y_hat = colSums(y_train_hat_trees),a_tau = a_tau,d_tau = d_tau)
 
-                nu <- update_single_nu(current_trees = current_trees,y_train = colSums(y_train_hat_trees),
-                                       current_nu = nu,phi_matrix = phi_vec_matrix,x_train = x_train,tau = tau)
+                # nu <- update_single_nu(current_trees = current_trees,y_train = colSums(y_train_hat_trees),
+                #                        current_nu = nu,phi_matrix = phi_vec_matrix,x_train = x_train,tau = tau)
 
                 tau_post[i] <- tau
 

@@ -18,9 +18,9 @@ update_phi_gpbart <- function(tree,
                 new_phi_vector_p <- phi_vector_p
                 new_phi_vector_p[i] <- phi_proposal
 
-                old_log_like <- Reduce("+",lapply(t_nodes, function(node){ node_loglikelihood_gpbart(node = node,res_vec = res_vec,x_train = x_train[,cov_gp],
+                old_log_like <- Reduce("+",lapply(t_nodes, function(node){ node_loglikelihood_gpbart(node = node,res_vec = res_vec,x_train = x_train[,cov_gp, drop = FALSE],
                                                                                           tau = tau,tau_mu = tau_mu,nu = nu,phi_vector = phi_vector_p,gp_variables = cov_gp)}))
-                new_log_like <- Reduce("+",lapply(t_nodes, function(node){ node_loglikelihood_gpbart(node = node,res_vec = res_vec,x_train = x_train[,cov_gp],
+                new_log_like <- Reduce("+",lapply(t_nodes, function(node){ node_loglikelihood_gpbart(node = node,res_vec = res_vec,x_train = x_train[,cov_gp, drop = FALSE],
                                                                                                      tau = tau,tau_mu = tau_mu,nu = nu,phi_vector = new_phi_vector_p,gp_variables = cov_gp)}))
 
 

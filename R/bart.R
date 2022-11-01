@@ -91,6 +91,11 @@ grow <- function(res_vec,
                 min_node_obs <- sort(x_train[g_node$obs_train,split_var])[node_min_size]
                 max_node_obs <- sort(x_train[g_node$obs_train,split_var])[length(x_train[g_node$obs_train,split_var])-node_min_size]
 
+                # In case of not enough valid xcut
+                if((length(x_train[g_node$obs_train,split_var])-node_min_size)<1){
+                        return(tree)
+                }
+
                 # Getting the column from xcut
                 xcut_valid <- xcut[which(xcut[,split_var]>=min_node_obs & xcut[,split_var]<=max_node_obs),split_var]
 
@@ -150,6 +155,169 @@ grow <- function(res_vec,
                           var = split_var,
                           var_split_rule = split_var_sampled_rule,
                           mu = 0)
+
+        # Modifying the new g_node
+        new_g_node <-g_node
+        new_g_node$left <- max_index+1
+        new_g_node$right <- max_index+2
+        new_g_node$terminal <- 0
+        new_g_node$nog = 1 # It always be a a nog since is given origin to two children
+
+
+        # Get nog counter ( FOR THE NEW TREE )
+        nog_counter <- count_nog(tree = tree[-g_node_position]) + 1
+
+        # Calculating the acceptance for two new nodes
+        tree_loglikeli <- node_loglikelihood(res_vec = res_vec,node = left_node,tau = tau,tau_mu = tau_mu) + node_loglikelihood(res_vec = res_vec,node = right_node, tau = tau,tau_mu = tau_mu) - node_loglikelihood(res_vec = res_vec,node = g_node,tau = tau, tau_mu = tau_mu)
+
+        # Calculate the transition
+        transition_loglike <- log(0.3/nog_counter)-log(0.3/length(terminal_nodes)) # prob of getting from the new tree to the old (PRUNE), minus getting to the old to the new (GROW)
+
+        # Calculate the tree prior contribution
+        tree_prior <- 2*log(1-alpha*(1+(g_node$depth+1))^(-beta)) + ((-beta)*log((1+g_node$depth)) + log(alpha)) - log(1-alpha*(1+g_node$depth)^(-beta))
+
+        log_acceptance <- tree_loglikeli+transition_loglike+tree_prior
+
+        # Accepting the tree ornot
+        if(stats::runif(n = 1)<=exp(log_acceptance)){
+                # Maybe use append to make everything easier
+                tree[[g_node_name]] <- new_g_node
+
+                # Transform the parent into a nog
+                if(!is.na(g_node$parent)){
+                        tree[[paste0("node_",g_node$parent)]]$nog <- 0
+                }
+
+
+                new_nodes <- list(left_node,right_node)
+                names(new_nodes) <- c(paste0("node_",c(new_nodes[[1]]$index,new_nodes[[2]]$index)))
+                tree <- append(tree,new_nodes,after = g_node_position_orig)
+        }
+
+        return(tree)
+
+}
+
+
+# Creating a function to grow a tree
+grow_rotation <- function(res_vec,
+                 tree,
+                 x_train,
+                 x_test,
+                 xcut,
+                 tau,
+                 tau_mu,
+                 alpha,
+                 beta,
+                 node_min_size,
+                 # Passing rotation variables
+                 rotation_variables){
+
+        # Getting the terminal nodes
+        terminal_nodes <- get_terminals(tree)
+
+        # Sampling one terminal node
+        g_node_position <- sample(1:length(terminal_nodes),size = 1)
+        g_node <- terminal_nodes[[g_node_position]]
+        g_node_name <- names(terminal_nodes[g_node_position])
+        g_node_position_orig <- which(names(tree) ==g_node_name)
+
+        # Initializing the sample
+        split_var_candidates <- 1:length(rotation_variables)
+        good_tree_index <- 0
+
+
+        while(good_tree_index==0){
+                # Selecting a valid split
+                split_var_pair <- sample(rotation_variables,size = 2)
+
+                split_var <- sample(split_var_pair,size = 1)
+
+                # Selecting an angle to rotate my coordinates
+                theta <- stats::runif(n = 1,min = 0,max = pi)
+
+                # Creating the rotated coordinates
+                rotated_x <- tcrossprod(A(theta), x_train[,split_var_pair])
+                rownames(rotated_x) <- split_var_pair
+
+
+                # Getting the rotation for the test
+                rotated_x_test <- tcrossprod(A(theta), x_test[,split_var_pair])
+                rownames(rotated_x_test) <- split_var_pair
+
+                if((length(rotated_x[split_var,g_node$obs_train])-node_min_size)<1){
+                        return(tree)
+                }
+                # Getting the min and maximum observed value within the terminal node
+                min_node_obs <- sort(rotated_x[split_var,g_node$obs_train])[node_min_size]
+                max_node_obs <- sort(rotated_x[split_var,g_node$obs_train])[length(rotated_x[split_var,g_node$obs_train])-node_min_size]
+
+                # Getting the x_cut matrix rotated
+                xcut_rotated <- tcrossprod(A(theta), xcut[,split_var_pair])
+                rownames(xcut_rotated) <- split_var_pair
+
+                # Getting the column from xcut
+                xcut_valid <- xcut_rotated[split_var,which(xcut_rotated[split_var,]>=min_node_obs & xcut_rotated[split_var,]<=max_node_obs)]
+
+
+                # No valid tree found
+                if(length(xcut_valid) == 0 ){
+
+                        rotation_variables <-  rotation_variables[!(rotation_variables %in% split_var_pair)]
+
+                        if(length(rotation_variables)==0 || length(rotation_variables)==1){
+                                return(tree) # There are no valid candidates for this node
+                        }
+
+                } else {
+                        good_tree_index <- 1
+                }
+        }
+        # Sampling a x_cut_rule
+        split_var_sampled_rule_rotation <- sample(xcut_valid,size = 1)
+
+        # Creating the left and the right nodes
+        max_index <- max(get_indexes(tree))
+        max_tree_size <- length(tree)
+
+        # Creating the vector of new train and test index
+        left_train_id <- g_node$obs_train[which(rotated_x[split_var,g_node$obs_train]<=split_var_sampled_rule_rotation)]
+        right_train_id <- g_node$obs_train[which(rotated_x[split_var,g_node$obs_train]>split_var_sampled_rule_rotation)]
+
+        left_test_id <- g_node$obs_test[which(rotated_x_test[split_var,g_node$obs_test]<=split_var_sampled_rule_rotation)]
+        right_test_id <- g_node$obs_test[which(rotated_x_test[split_var,g_node$obs_test]>split_var_sampled_rule_rotation)]
+
+        # No valid tree
+        if((length(left_train_id) < node_min_size) || (length(right_train_id)<node_min_size)){
+                return(tree)
+        }
+
+        # Creating the left node
+        left_node <- list(index = max_index+1,
+                          obs_train = left_train_id,
+                          obs_test  = left_test_id,
+                          left = NA,
+                          right = NA,
+                          parent = g_node$index,
+                          terminal = 1,
+                          nog = 0,
+                          depth = g_node$depth+1,
+                          var = list(split_var_pair = split_var_pair, split_var = split_var , theta = theta),
+                          var_split_rule = split_var_sampled_rule_rotation,
+                          mu = 0)
+
+        right_node <- list(index = max_index+2,
+                           obs_train = right_train_id,
+                           obs_test  = right_test_id,
+                           left = NA,
+                           right = NA,
+                           parent = g_node$index,
+                           terminal = 1,
+                           nog = 0,
+                           depth = g_node$depth+1,
+                           var = list(split_var_pair = split_var_pair, split_var = split_var, theta = theta),
+                           var_split_rule = split_var_sampled_rule_rotation,
+                           mu = 0)
 
         # Modifying the new g_node
         new_g_node <-g_node
@@ -286,10 +454,8 @@ change <- function(res_vec,
         }
 
         # Case of just one split
-        if(length(nog_nodes)==0 & length(tree)==3){
+        if( length(tree)==3){
                 c_node <- tree[[1]] ## Getting the root node
-        }  else {
-                return(tree)
         }
 
         good_tree_index <- 0
@@ -302,9 +468,15 @@ change <- function(res_vec,
                 # Selecting a valid split
                 split_var <- sample(split_var_candidates,size = 1)
 
+                # No available split
+                if((length(x_train[c_node$obs_train,split_var])-node_min_size)<1){
+                        return(tree)
+                }
+
                 # Getting the min and maximum observed value within the terminal node
                 min_node_obs <- sort(x_train[c_node$obs_train,split_var])[node_min_size]
                 max_node_obs <- sort(x_train[c_node$obs_train,split_var])[length(x_train[c_node$obs_train,split_var])-node_min_size]
+
 
                 # Getting the column from xcut
                 xcut_valid <- xcut[which(xcut[,split_var]>=min_node_obs & xcut[,split_var]<=max_node_obs),split_var]
@@ -338,6 +510,11 @@ change <- function(res_vec,
         new_left_name <- paste0("node_",c_node$left)
         new_right_name <- paste0("node_",c_node$right)
 
+        # No valid tree
+        if((length(left_train_id) < node_min_size) || (length(right_train_id)<node_min_size)){
+                return(tree)
+        }
+
         # Creating a new left node and changing it
         old_left_node <- tree[[new_left_name]]
         new_left_node <- tree[[new_left_name]]
@@ -362,6 +539,168 @@ change <- function(res_vec,
 
         log_acceptance <- tree_loglikeli
 
+
+
+
+        # Accepting the tree ornot
+        if(stats::runif(n = 1)<=exp(log_acceptance)){
+
+                # Maybe use append to make everything easier
+                tree[[new_left_name]] <- new_left_node
+                tree[[new_right_name]] <- new_right_node
+
+        }
+
+        return(tree)
+
+
+}
+
+
+# Changing the tree
+change_rotation <- function(res_vec,
+                   tree,
+                   x_train,
+                   x_test,
+                   xcut,
+                   tau,
+                   tau_mu,
+                   alpha,
+                   beta,
+                   node_min_size,
+                   rotation_variables){
+
+
+        # Getting the node
+        nog_nodes <- get_nog(tree = tree)
+        n_terminal_nodes <- length(get_terminals(tree = tree))
+
+
+        # If there is only the stump
+        if(length(tree)==0){
+                return(tree)
+        }
+
+        # Sample a node to be pruned
+        nog_nodes_index <- sample(1:length(nog_nodes),size = 1)
+
+        if(nog_nodes_index!=0 & length(nog_nodes)!=0){
+                c_node <- nog_nodes[[nog_nodes_index]]
+        }
+
+
+        # Case of just one split
+        if( length(tree)==3){
+                c_node <- tree[[1]] ## Getting the root node
+        }
+
+        # Case of just one split
+        # if(length(nog_nodes)==0 & length(tree)==3){
+        #         c_node <- tree[[1]] ## Getting the root node
+        # }  else {
+        #         return(tree)
+        # }
+
+        good_tree_index <- 0
+
+
+
+        while(good_tree_index==0){
+
+                # Selecting a valid pair split
+                split_var_pair <- sample(rotation_variables,size = 2)
+
+                # Selecting the splitted var from the par
+                split_var <- sample(split_var_pair, size = 1)
+
+                # Selecting an angle to rotate my coordinates
+                theta <- stats::runif(n = 1,min = 0,max = pi)
+
+                # Creating the rotated coordinates
+                rotated_x <- tcrossprod(A(theta), x_train[,split_var_pair])
+                rownames(rotated_x) <- split_var_pair
+
+                # Getting the rotation for the test
+                rotated_x_test <- tcrossprod(A(theta), x_test[,split_var_pair])
+                rownames(rotated_x_test) <- split_var_pair
+
+                # Case of invalid max
+                if((length(rotated_x[split_var,c_node$obs_train])-node_min_size)<1){
+                        return(tree)
+                }
+
+                # Getting the min and maximum observed value within the terminal node
+                min_node_obs <- sort(rotated_x[split_var,c_node$obs_train])[node_min_size]
+                max_node_obs <- sort(rotated_x[split_var,c_node$obs_train])[length(rotated_x[split_var,c_node$obs_train])-node_min_size]
+
+                # Getting the x_cut matrix rotated
+                xcut_rotated <- tcrossprod(A(theta), xcut[,split_var_pair])
+                rownames(xcut_rotated) <- split_var_pair
+
+                # Getting the column from xcut
+                xcut_valid <- xcut_rotated[split_var,which(xcut_rotated[split_var,]>=min_node_obs & xcut_rotated[split_var,]<=max_node_obs)]
+
+
+                # No valid tree found
+                if(length(xcut_valid) == 0 ){
+
+                        rotation_variables <-  rotation_variables[!(rotation_variables %in% split_var_pair)]
+
+                        if(length(rotation_variables)==0 || length(rotation_variables)==1){
+                                return(tree) # There are no valid candidates for this node
+                        }
+
+                } else {
+                        good_tree_index <- 1
+                }
+        }
+        # Sampling a x_cut_rule
+        split_var_sampled_rule_rotation <- sample(xcut_valid,size = 1)
+
+
+        # Creating the vector of new train and test index
+        left_train_id <- c_node$obs_train[which(rotated_x[split_var,c_node$obs_train]<=split_var_sampled_rule_rotation)]
+        right_train_id <- c_node$obs_train[which(rotated_x[split_var,c_node$obs_train]>split_var_sampled_rule_rotation)]
+
+        left_test_id <- c_node$obs_test[which(rotated_x_test[split_var,c_node$obs_test]<=split_var_sampled_rule_rotation)]
+        right_test_id <- c_node$obs_test[which(rotated_x_test[split_var,c_node$obs_test]>split_var_sampled_rule_rotation)]
+
+        # Getting the left and the right
+        new_left_name <- paste0("node_",c_node$left)
+        new_right_name <- paste0("node_",c_node$right)
+
+        # Creating a new left node and changing it
+        old_left_node <- tree[[new_left_name]]
+        new_left_node <- tree[[new_left_name]]
+        new_left_node$obs_train <- left_train_id
+        new_left_node$obs_test <- left_test_id
+        new_left_node$var <- list(split_var_pair = split_var_pair, split_var = split_var, theta = theta )
+        new_left_node$var_split_rule <- split_var_sampled_rule_rotation
+
+        # Creating a new right node and changing it
+        old_right_node <- tree[[new_right_name]]
+        new_right_node <- tree[[new_right_name]]
+        new_right_node$obs_train <- right_train_id
+        new_right_node$obs_test <- right_test_id
+        new_right_node$var <- list(split_var_pair = split_var_pair, split_var = split_var, theta = theta )
+        new_right_node$var_split_rule <- split_var_sampled_rule_rotation
+
+
+        # Calculating the acceptance for two new nodes
+        tree_loglikeli <- node_loglikelihood(res_vec = res_vec,node = new_left_node,tau = tau,tau_mu = tau_mu) +
+                node_loglikelihood(res_vec = res_vec,node = new_right_node,tau = tau,tau_mu = tau_mu) -
+                node_loglikelihood(res_vec = res_vec,node = old_left_node, tau = tau,tau_mu = tau_mu) -
+                node_loglikelihood(res_vec = res_vec,node = old_right_node,tau = tau, tau_mu = tau_mu)
+
+        log_acceptance <- tree_loglikeli
+
+
+        # No valid tree
+        if((length(new_left_node$obs_train) < node_min_size) || (length(new_right_node$obs_train)<node_min_size)){
+                return(tree)
+        }
+
+        # print(exp(log_acceptance))
         # Accepting the tree ornot
         if(stats::runif(n = 1)<=exp(log_acceptance)){
 
