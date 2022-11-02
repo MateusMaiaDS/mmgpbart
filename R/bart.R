@@ -585,6 +585,7 @@ change_rotation <- function(res_vec,
         nog_nodes <- get_nog(tree = tree)
         n_terminal_nodes <- length(get_terminals(tree = tree))
 
+        # print(" ROTATION TESTS!!!")
 
         # If there is only the stump
         if(length(tree)==1){
@@ -802,15 +803,18 @@ update_mu <- function(tree,
 
 
 # Getting prediction
-getPrediction <- function(tree){
+getPrediction <- function(tree,x_train,x_test){
 
         # Getting the train and the test prediction
-        train_pred <- numeric()
-        test_pred <- numeric()
+        train_pred <- rep(NA,nrow(x_train))
+        test_pred <- rep(NA,nrow(x_test))
 
         # Getting the terminal nodes
         terminal_nodes <- get_terminals(tree = tree)
 
+        if(length(terminal_nodes)<1){
+                stop("Error NO terminal nodes in this tree")
+        }
         for(i in 1:length(terminal_nodes)){
 
                 train_pred[terminal_nodes[[i]]$obs_train] <- terminal_nodes[[i]]$mu

@@ -256,7 +256,7 @@ gp_bart <- function(x_train,
                                                                 tau = tau,tau_mu = tau_mu)
 
                                 # Prediction aux
-                                pred_obj <- getPrediction(tree = current_trees[[t]])
+                                pred_obj <- getPrediction(tree = current_trees[[t]],x_train = x_train, x_test = x_test)
 
                                 y_train_hat_trees[t,] <- pred_obj$train_pred
                                 y_test_hat_trees[t,] <- pred_obj$test_pred
