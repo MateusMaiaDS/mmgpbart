@@ -547,6 +547,7 @@ change_gpbart <- function(res_vec,
         new_left_node$obs_test <- left_test_id
         new_left_node$var <- split_var
         new_left_node$var_split_rule <- split_var_sampled_rule
+        new_left_node$parent <- c_node$index
 
         # Creating a new right node and changing it
         old_right_node <- tree[[new_right_name]]
@@ -555,7 +556,7 @@ change_gpbart <- function(res_vec,
         new_right_node$obs_test <- right_test_id
         new_right_node$var <- split_var
         new_right_node$var_split_rule <- split_var_sampled_rule
-
+        new_left_node$parent <- c_node$index
 
         # No valid tree
         if((length(new_left_node$obs_train) < node_min_size) || (length(new_right_node$obs_train)<node_min_size)){
@@ -708,6 +709,7 @@ change_rotation_gpbart <- function(res_vec,
         new_left_node$obs_test <- left_test_id
         new_left_node$var <- list(split_var_pair = split_var_pair, split_var = split_var, theta = theta )
         new_left_node$var_split_rule <- split_var_sampled_rule_rotation
+        new_left_node$parent <- c_node$index
 
         # Creating a new right node and changing it
         old_right_node <- tree[[new_right_name]]
@@ -716,7 +718,7 @@ change_rotation_gpbart <- function(res_vec,
         new_right_node$obs_test <- right_test_id
         new_right_node$var <- list(split_var_pair = split_var_pair, split_var = split_var, theta = theta )
         new_right_node$var_split_rule <- split_var_sampled_rule_rotation
-
+        new_right_node$parent <- c_node$index
 
         # No valid tree
         if((length(new_left_node$obs_train) < node_min_size) || (length(new_right_node$obs_train)<node_min_size)){

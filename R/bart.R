@@ -151,7 +151,7 @@ grow <- function(res_vec,
                           obs_test  = right_test_id,
                           left = NA,
                           right = NA,
-                          parent = g_node$parent,
+                          parent = g_node$index,
                           terminal = 1,
                           nog = 0,
                           depth = g_node$depth+1,
@@ -197,6 +197,8 @@ grow <- function(res_vec,
                 tree <- append(tree,new_nodes,after = g_node_position_orig)
         }
 
+
+        tree_validator(tree = tree)
         return(tree)
 
 }
@@ -429,6 +431,8 @@ prune <- function(tree,
                 tree[[right_node_name]] <- NULL
         }
 
+        tree_validator(tree = tree)
+
         return(tree)
 }
 
@@ -505,6 +509,7 @@ change <- function(res_vec,
                         good_tree_index <- 1
                 }
         }
+
         # Sampling a x_cut_rule
         split_var_sampled_rule <- sample(xcut_valid,size = 1)
 
@@ -532,6 +537,7 @@ change <- function(res_vec,
         new_left_node$obs_test <- left_test_id
         new_left_node$var <- split_var
         new_left_node$var_split_rule <- split_var_sampled_rule
+        new_left_node$parent <- c_node$index
 
         # Creating a new right node and changing it
         old_right_node <- tree[[new_right_name]]
@@ -540,6 +546,7 @@ change <- function(res_vec,
         new_right_node$obs_test <- right_test_id
         new_right_node$var <- split_var
         new_right_node$var_split_rule <- split_var_sampled_rule
+        new_right_node$parent <- c_node$index
 
         # Calculating the acceptance for two new nodes
         tree_loglikeli <- node_loglikelihood(res_vec = res_vec,node = new_left_node,tau = tau,tau_mu = tau_mu) +
@@ -560,6 +567,8 @@ change <- function(res_vec,
                 tree[[new_right_name]] <- new_right_node
 
         }
+
+        tree_validator(tree = tree)
 
         return(tree)
 
@@ -697,6 +706,7 @@ change_rotation <- function(res_vec,
         new_left_node$obs_test <- left_test_id
         new_left_node$var <- list(split_var_pair = split_var_pair, split_var = split_var, theta = theta )
         new_left_node$var_split_rule <- split_var_sampled_rule_rotation
+        new_left_node$parent <- c_node$index
 
         # Creating a new right node and changing it
         old_right_node <- tree[[new_right_name]]
@@ -705,6 +715,7 @@ change_rotation <- function(res_vec,
         new_right_node$obs_test <- right_test_id
         new_right_node$var <- list(split_var_pair = split_var_pair, split_var = split_var, theta = theta )
         new_right_node$var_split_rule <- split_var_sampled_rule_rotation
+        new_right_node$parent <- c_node$index
 
 
         # Calculating the acceptance for two new nodes
@@ -1019,5 +1030,17 @@ bart <- function(x_train,
                     y_hat_post = y_train_hat_post,
                     y_test_hat_post = y_test_hat_post,
                     last_trees = current_trees))
+
+}
+
+
+# BART validator -- get if the tree yielded valid tree
+tree_validator <- function(tree){
+        t_nodes <- get_terminals(tree = tree)
+        all_t_index <- sort(unlist(lapply(t_nodes, function(x){x$obs_train})))
+
+        if(length(all_t_index)!=length(tree[["node_0"]]$obs_train)){
+                stop("Tree not valid")
+        }
 
 }
