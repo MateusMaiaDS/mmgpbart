@@ -86,6 +86,10 @@ gp_bart <- function(x_train,
 
                 xcut[,j] <-xs
         }# Error of the matrix
+
+        # Adding a small pertubation over the xcut var to not match the current observed values
+        xcut <- xcut + 1e-8
+
         if(is.null(colnames(x_train)) || is.null(colnames(x_test)) ) {
                 stop("Insert a valid NAMED matrix")
         }
