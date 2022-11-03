@@ -436,8 +436,13 @@ prune_gpbart <- function(tree,
 
                 # The parent of the pruned node need to return to be a nog
 
-                if(!is.na(p_node$parent) & !(p_node$parent %in% parents_non_t_nodes)){# The second parenthis is the case were the pruned node has nonterminal as a brother
-                        tree[[paste0("node_",p_node$parent)]]$nog <- 1
+                # Checking if AFTER pruning this node its parent become a NOG
+                if(p_node_name!="node_0"){
+                        new_t_nodes_names <- c(names(t_nodes),p_node_name)
+                        pruned_node_parent <- tree[[paste0("node_",tree[[p_node_name]]$parent)]]
+                        if((paste0("node_",pruned_node_parent$left) %in% new_t_nodes_names) & (paste0("node_",pruned_node_parent$right) %in% new_t_nodes_names)){
+                                tree[[paste0("node_",tree[[p_node_name]]$parent)]]$nog <- 1
+                        }
                 }
 
 

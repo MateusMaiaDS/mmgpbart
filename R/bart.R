@@ -429,9 +429,16 @@ prune <- function(tree,
                 # Removing the pruned nodes
                 tree[[left_node_name]] <- NULL
                 tree[[right_node_name]] <- NULL
-        }
 
-        tree_validator(tree = tree)
+                # Checking if AFTER pruning this node its parent become a NOG
+                if(p_node_name!="node_0"){
+                        new_t_nodes_names <- c(names(t_nodes),p_node_name)
+                        pruned_node_parent <- tree[[paste0("node_",tree[[p_node_name]]$parent)]]
+                        if((paste0("node_",pruned_node_parent$left) %in% new_t_nodes_names) & (paste0("node_",pruned_node_parent$right) %in% new_t_nodes_names)){
+                                tree[[paste0("node_",tree[[p_node_name]]$parent)]]$nog <- 1
+                        }
+                }
+        }
 
         return(tree)
 }
