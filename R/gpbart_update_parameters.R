@@ -14,7 +14,10 @@ update_phi_gpbart <- function(tree,
 
         for(i in 1:length(phi_vector_p)){
                 # phi_proposal <- sample(x = 1/(2*pi*up_crossings),size = 1)
-                phi_proposal <- stats::runif(n = 1,min = 0.75*phi_vector_p[i],max = 1.25*phi_vector_p[i])
+                # phi_proposal <- stats::runif(n = 1,min = 0.75*phi_vector_p[i],max = 1.25*phi_vector_p[i])
+                # phi_proposal <- sample(c(0.01,0.1,0.5,1,3,5,10,50,100,1000),size = 1)
+                phi_proposal <- stats::runif(0,100,n = 1)
+
                 new_phi_vector_p <- phi_vector_p
                 new_phi_vector_p[i] <- phi_proposal
 
@@ -25,7 +28,9 @@ update_phi_gpbart <- function(tree,
 
 
                 # Calculating acceptance
-                acceptance <- exp(new_log_like-old_log_like + stats::dgamma(x = phi_proposal,shape = 5,rate = 1,log = TRUE) - stats::dgamma(x = phi_vector_p[i],shape = 5,rate = 1,log = TRUE))
+                # acceptance <- exp(new_log_like-old_log_like + stats::dgamma(x = phi_proposal,shape = 5,rate = 1,log = TRUE) - stats::dgamma(x = phi_vector_p[i],shape = 5,rate = 1,log = TRUE) )
+
+                acceptance <- exp(new_log_like-old_log_like)
 
                 if(stats::runif(n = 1,min = 0,max = 1)<=acceptance){
                         phi_vector_p <- new_phi_vector_p
