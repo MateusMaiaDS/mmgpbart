@@ -28,7 +28,7 @@ update_phi_gpbart <- function(tree,
 
 
                 # Calculating acceptance
-                acceptance <- exp(new_log_like-old_log_like #+ stats::dgamma(x = phi_proposal,shape = 5,rate = 1,log = TRUE) - stats::dgamma(x = phi_vector_p[i],shape = 5,rate = 1,log = TRUE) )
+                acceptance <- exp(new_log_like-old_log_like) #+ stats::dgamma(x = phi_proposal,shape = 5,rate = 1,log = TRUE) - stats::dgamma(x = phi_vector_p[i],shape = 5,rate = 1,log = TRUE) )
 
                 # acceptance <- exp(new_log_like-old_log_like)
 
