@@ -29,7 +29,7 @@ update_phi_gpbart <- function(tree,
 
                 # Transition loglikelihood
                 transition_log <- stats::dunif(x = phi_vector_p[i],min = (3/4)*phi_proposal,max = (4/3)*phi_proposal,log = TRUE) - stats::dunif(x = phi_proposal,min = (3/4)*phi_vector_p[i],max = (4/3)*phi_vector_p[i],log = TRUE)
-                prior_log <- 0.5*((stats::dgamma(x = phi_proposal,shape = 1.5,rate = 1.5,log = TRUE)+stats::dgamma(x = phi_proposal,shape = 10,rate = 1,log = TRUE))-(stats::dgamma(x = phi_vector_p[i],shape = 1.5,rate = 1.5,log = TRUE)+stats::dgamma(x = phi_vector_p[i],shape = 10,rate = 1,log = TRUE)))
+                prior_log <- 0.5*((stats::dgamma(x = phi_proposal,shape = 2,rate = 1,log = TRUE)+stats::dgamma(x = phi_proposal,shape = 20,rate = 1,log = TRUE))-(stats::dgamma(x = phi_vector_p[i],shape = 2,rate = 1,log = TRUE)+stats::dgamma(x = phi_vector_p[i],shape = 20,rate = 1,log = TRUE)))
                 # Calculating acceptance
                 acceptance <- exp(new_log_like-old_log_like + transition_log + prior_log) #+ stats::dgamma(x = phi_proposal,shape = 5,rate = 1,log = TRUE) - stats::dgamma(x = phi_vector_p[i],shape = 5,rate = 1,log = TRUE) )
 
