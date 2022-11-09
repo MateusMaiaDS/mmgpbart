@@ -87,6 +87,9 @@ grow_gpbart <- function(res_vec,
                 }
         }
         # Sampling a x_cut_rule
+
+        # Getting only unique values of xcut_valid
+        xcut_valid <- unique(xcut_valid)
         split_var_sampled_rule <- sample(xcut_valid,size = 1)
 
         # Creating the left and the right nodes
@@ -265,6 +268,7 @@ grow_rotation_gpbart <- function(res_vec,
                 }
         }
         # Sampling a x_cut_rule
+        xcut_valid <- unique(xcut_valid)
         split_var_sampled_rule_rotation <- sample(xcut_valid,size = 1)
 
         # Creating the left and the right nodes
@@ -531,6 +535,7 @@ change_gpbart <- function(res_vec,
         }
 
         # Sampling a x_cut_rule
+        xcut_valid <- unique(xcut_valid)
         split_var_sampled_rule <- sample(xcut_valid,size = 1)
 
 
@@ -694,6 +699,7 @@ change_rotation_gpbart <- function(res_vec,
         }
 
         # Sampling a x_cut_rule
+        xcut_valid <- unique(xcut_valid)
         split_var_sampled_rule_rotation <- sample(xcut_valid,size = 1)
 
         # Creating the vector of new train and test index
