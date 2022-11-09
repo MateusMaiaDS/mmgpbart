@@ -46,3 +46,15 @@ normalize_covariates_bart <- function(y, a = NULL, b = NULL) {
         y  <- (y - a)/(b - a)
         return(y)
 }
+
+# Getting a half cauchy
+dhalfcauchy <- function(x,mu,sigma, log = FALSE) {
+
+        if(!log){
+        # Vectorised version of dhalfcauchy
+                ifelse(x>mu,(2/(pi*sigma))*(1/(1+((x-mu)^2)/(sigma^2))),0)
+        } else {# Vectorised version of dhalfcauchy
+                log(ifelse(x>mu,(2/(pi*sigma))*(1/(1+((x-mu)^2)/(sigma^2))),0))
+        }
+
+}
