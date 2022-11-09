@@ -41,6 +41,10 @@ grow_gpbart <- function(res_vec,
                  phi_vector_p,
                  cov_gp){
 
+
+        # Accepting or not the verb
+        accepted <- FALSE
+
         # Getting the terminal nodes
         terminal_nodes <- get_terminals(tree)
 
@@ -61,7 +65,7 @@ grow_gpbart <- function(res_vec,
 
                 # Avoiding invalid max.
                 if((length(x_train[g_node$obs_train,split_var])-node_min_size)<1){
-                        return(tree)
+                        return(list(tree = tree, accepted = accepted))
                 }
 
                 # Getting the min and maximum observed value within the terminal node
@@ -79,7 +83,7 @@ grow_gpbart <- function(res_vec,
                         split_var_candidates <-  split_var_candidates[-which(split_var==split_var_candidates)]
 
                         if(length(split_var_candidates)==0){
-                                return(tree) # There are no valid candidates for this node
+                                return(list(tree = tree, accepted = accepted)) # There are no valid candidates for this node
                         }
 
                 } else {
@@ -105,7 +109,7 @@ grow_gpbart <- function(res_vec,
 
         # No valid tree
         if((length(left_train_id) < node_min_size) || (length(right_train_id)<node_min_size)){
-                return(tree)
+                return(list(tree = tree, accepted = accepted))
         }
 
         # Creating the left node
@@ -180,9 +184,10 @@ grow_gpbart <- function(res_vec,
                 new_nodes <- list(left_node,right_node)
                 names(new_nodes) <- c(paste0("node_",c(new_nodes[[1]]$index,new_nodes[[2]]$index)))
                 tree <- append(tree,new_nodes,after = g_node_position_orig)
+                accepted <- TRUE
         }
 
-        return(tree)
+        return(list(tree = tree, accepted = accepted))
 
 }
 
@@ -204,6 +209,8 @@ grow_rotation_gpbart <- function(res_vec,
                         cov_gp,
                         rotation_variables){
 
+        # ACC
+        accepted <- FALSE
         # Getting the terminal nodes
         terminal_nodes <- get_terminals(tree)
 
@@ -238,7 +245,7 @@ grow_rotation_gpbart <- function(res_vec,
                 rownames(rotated_x_test) <- split_var_pair
 
                 if((length(rotated_x[split_var,g_node$obs_train])-node_min_size)<1){
-                        return(tree)
+                        return(list(tree = tree, accepted = accepted))
                 }
 
                 # Getting the min and maximum observed value within the terminal node
@@ -260,7 +267,7 @@ grow_rotation_gpbart <- function(res_vec,
                         rotation_variables <-  rotation_variables[!(rotation_variables %in% split_var_pair)]
 
                         if(length(rotation_variables)==0 || length(rotation_variables)==1){
-                                return(tree) # There are no valid candidates for this node
+                                return(list(tree = tree, accepted = accepted)) # There are no valid candidates for this node
                         }
 
                 } else {
@@ -284,7 +291,7 @@ grow_rotation_gpbart <- function(res_vec,
 
         # No valid tree
         if((length(left_train_id) < node_min_size) || (length(right_train_id)<node_min_size)){
-                return(tree)
+                return(list(tree = tree, accepted = accepted))
         }
 
         # Creating the left node
@@ -359,9 +366,10 @@ grow_rotation_gpbart <- function(res_vec,
                 new_nodes <- list(left_node,right_node)
                 names(new_nodes) <- c(paste0("node_",c(new_nodes[[1]]$index,new_nodes[[2]]$index)))
                 tree <- append(tree,new_nodes,after = g_node_position_orig)
+                accepted <- TRUE
         }
 
-        return(tree)
+        return(list(tree = tree, accepted = accepted))
 
 }
 
@@ -378,6 +386,8 @@ prune_gpbart <- function(tree,
                   phi_vector_p,
                   cov_gp){
 
+        #Accept bool
+        accepted <- FALSE
         # Getting the node
         nog_nodes <- get_nog(tree = tree)
         t_nodes <- (get_terminals(tree = tree))
@@ -387,7 +397,7 @@ prune_gpbart <- function(tree,
 
         # Returning the  a simple tree
         if(length(nog_nodes)==0){
-                return(tree)
+                return(list(tree = tree, accepted = accepted))
         }
 
         # Sample a node to be pruned
@@ -449,10 +459,11 @@ prune_gpbart <- function(tree,
                         }
                 }
 
-
+                accepted <- TRUE
         }
 
-        return(tree)
+        return(list(tree = tree, accepted = accepted))
+
 }
 
 # Changing the tree
@@ -470,13 +481,14 @@ change_gpbart <- function(res_vec,
                    phi_vector_p,
                    cov_gp){
 
-
+        # ACC
+        accepted <- FALSE
         # Getting the node
         nog_nodes <- get_nog(tree = tree)
         n_terminal_nodes <- length(get_terminals(tree = tree))
 
         if(length(tree)==1 || length(tree) == 0){
-                return(tree)
+                return(list(tree = tree, accepted = accepted))
         }
 
 
@@ -493,7 +505,7 @@ change_gpbart <- function(res_vec,
         }
 
         if((length(nog_nodes) == 0) & length(tree)!=3){
-                return(tree)
+                return(list(tree = tree, accepted = accepted))
         }
 
         good_tree_index <- 0
@@ -508,7 +520,7 @@ change_gpbart <- function(res_vec,
 
                 # Case of invalid max
                 if((length(x_train[c_node$obs_train,split_var])-node_min_size)<1){
-                        return(tree)
+                        return(list(tree = tree, accepted = accepted))
                 }
 
 
@@ -526,7 +538,7 @@ change_gpbart <- function(res_vec,
                         split_var_candidates <-  split_var_candidates[-which(split_var==split_var_candidates)]
 
                         if(length(split_var_candidates)==0){
-                                return(tree) # There are no valid candidates for this node
+                                return(list(tree = tree, accepted = accepted)) # There are no valid candidates for this node
                         }
 
                 } else {
@@ -570,7 +582,7 @@ change_gpbart <- function(res_vec,
 
         # No valid tree
         if((length(new_left_node$obs_train) < node_min_size) || (length(new_right_node$obs_train)<node_min_size)){
-                return(tree)
+                return(list(tree = tree, accepted = accepted))
         }
 
         # Calculating the acceptance for two new nodes
@@ -588,11 +600,10 @@ change_gpbart <- function(res_vec,
                 # Maybe use append to make everything easier
                 tree[[new_left_name]] <- new_left_node
                 tree[[new_right_name]] <- new_right_node
-
+                accepted <- TRUE
         }
 
-        return(tree)
-
+        return(list(tree = tree, accepted = accepted))
 
 }
 
@@ -614,12 +625,15 @@ change_rotation_gpbart <- function(res_vec,
                           rotation_variables){
 
 
+        # ACC
+        accepted <- FALSE
+
         # Getting the node
         nog_nodes <- get_nog(tree = tree)
         n_terminal_nodes <- length(get_terminals(tree = tree))
 
         if(length(tree)==1 || length(tree)==0){
-                return(tree)
+                return(list(tree = tree, accepted = accepted))
         }
 
         # Sample a node to be pruned
@@ -636,7 +650,7 @@ change_rotation_gpbart <- function(res_vec,
 
 
         if((length(nog_nodes) == 0) & length(tree)!=3){
-                return(tree)
+                return(list(tree = tree, accepted = accepted))
         }
 
         good_tree_index <- 0
@@ -677,7 +691,7 @@ change_rotation_gpbart <- function(res_vec,
 
                 # Case of invalid max
                 if((length(rotated_x[split_var,c_node$obs_train])-node_min_size)<1){
-                        return(tree)
+                        return(list(tree = tree, accepted = accepted))
                 }
 
 
@@ -688,7 +702,7 @@ change_rotation_gpbart <- function(res_vec,
                         rotation_variables <-  rotation_variables[!(rotation_variables %in% split_var_pair)]
 
                         if(length(rotation_variables)==0 || length(rotation_variables)==1){
-                                return(tree) # There are no valid candidates for this node
+                                return(list(tree = tree, accepted = accepted)) # There are no valid candidates for this node
                         }
 
 
@@ -733,7 +747,7 @@ change_rotation_gpbart <- function(res_vec,
 
         # No valid tree
         if((length(new_left_node$obs_train) < node_min_size) || (length(new_right_node$obs_train)<node_min_size)){
-                return(tree)
+                return(list(tree = tree, accepted = accepted))
         }
 
         # Calculating the acceptance for two new nodes
@@ -750,10 +764,11 @@ change_rotation_gpbart <- function(res_vec,
                 # Maybe use append to make everything easier
                 tree[[new_left_name]] <- new_left_node
                 tree[[new_right_name]] <- new_right_node
+                accepted <- TRUE
 
         }
 
-        return(tree)
+        return(list(tree = tree, accepted = accepted))
 
 
 }

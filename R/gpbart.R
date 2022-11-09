@@ -23,6 +23,7 @@ gp_bart <- function(x_train,
                  bart_warmup = 250,
                  x_scale = FALSE,
                  update_nu = TRUE,
+                 store_verb = TRUE,
                  gp_variables_,
                  rotation_variables_ = NULL){
 
@@ -192,6 +193,10 @@ gp_bart <- function(x_train,
                 warning(" BART iterations are being used to predict the model")
         }
 
+
+        # Tree verb ratio acceptance
+        df_verb <- as.data.frame(matrix(nrow = 0,ncol = 2,dimnames = list(NULL,c("verb","accepted_verb"))))
+
         for(i in 1:n_mcmc){
 
                 # Small progress bar
@@ -293,30 +298,30 @@ gp_bart <- function(x_train,
 
                                 # Selecting one verb movement
                                 if(verb == "grow"){
-                                        current_trees[[t]] <- grow_gpbart(res_vec = partial_residuals,tree = current_trees[[t]],
+                                        current_tree_aux <- grow_gpbart(res_vec = partial_residuals,tree = current_trees[[t]],
                                                                           x_train = x_train,x_test = x_test,xcut = xcut,tau = tau,
                                                                           tau_mu = tau_mu,alpha = alpha,beta = beta,node_min_size = node_min_size,
                                                                           nu = nu,phi_vector_p = phi_vec_matrix[t,],cov_gp = gp_variables_)
                                 } else if( verb == "grow_rotate"){
-                                        current_trees[[t]] <- grow_rotation_gpbart(res_vec = partial_residuals,tree = current_trees[[t]],
+                                        current_tree_aux <- grow_rotation_gpbart(res_vec = partial_residuals,tree = current_trees[[t]],
                                                                                    x_train = x_train,x_test = x_test,xcut = xcut,tau = tau,
                                                                                    tau_mu = tau_mu, alpha = alpha,beta = beta,node_min_size = node_min_size,
                                                                                    nu = nu, phi_vector_p = phi_vec_matrix[t,],cov_gp = gp_variables_,
                                                                                    rotation_variables = rotation_variables_)
 
                                 }else if( verb == "prune"){
-                                        current_trees[[t]] <- prune_gpbart(res_vec = partial_residuals,
+                                        current_tree_aux <- prune_gpbart(res_vec = partial_residuals,
                                                                            x_train = x_train,
                                                                            tree = current_trees[[t]],
                                                                            tau = tau, tau_mu = tau_mu, alpha = alpha, beta = beta,
                                                                            nu = nu, phi_vector_p = phi_vec_matrix[t,],cov_gp = gp_variables_)
                                 } else if( verb == "change"){
-                                        current_trees[[t]] <- change_gpbart(res_vec = partial_residuals,tree = current_trees[[t]],
+                                        current_tree_aux <- change_gpbart(res_vec = partial_residuals,tree = current_trees[[t]],
                                                                           x_train = x_train,x_test = x_test,xcut = xcut,tau = tau,
                                                                           tau_mu = tau_mu,alpha = alpha,beta = beta,node_min_size = node_min_size,
                                                                           nu = nu,phi_vector_p = phi_vec_matrix[t,],cov_gp = gp_variables_)
                                 } else if (verb == "change_rotate"){
-                                        current_trees[[t]] <- change_rotation_gpbart(res_vec = partial_residuals,tree = current_trees[[t]],
+                                        current_tree_aux <- change_rotation_gpbart(res_vec = partial_residuals,tree = current_trees[[t]],
                                                                                    x_train = x_train,x_test = x_test,xcut = xcut,tau = tau,
                                                                                    tau_mu = tau_mu, alpha = alpha,beta = beta,node_min_size = node_min_size,
                                                                                    nu = nu, phi_vector_p = phi_vec_matrix[t,],cov_gp = gp_variables_,
@@ -326,7 +331,14 @@ gp_bart <- function(x_train,
                                 }
 
 
+                                # Getting the tree
+                                current_trees[[t]] <- current_tree_aux$tree
 
+                                #  Choosing if store the verbs or not
+                                if(store_verb){
+                                        df_verb <- rbind(df_verb,data.frame( verb = verb,
+                                                                             accepted_bool = current_tree_aux$accepted))
+                                }
                                 # Changing for the current tree
                                 # Updating the phi
                                 phi_vec_matrix[t,] <- update_phi_gpbart(tree = current_trees[[t]],x_train = x_train,res_vec = partial_residuals,
@@ -426,7 +438,8 @@ gp_bart <- function(x_train,
                                       nu_post = nu_post,
                                       partial_residuals = current_partial_residuals_list,
                                       all_tree_prediction = all_tree_prediction,
-                                      trees = post_trees))
+                                      trees = post_trees,
+                                      post_verbs = df_verb))
         } else {
                 post_obj <- list(tau_post = tau_post,
                      y_hat_post = y_train_hat_post,
@@ -451,7 +464,8 @@ gp_bart <- function(x_train,
                      posterior = list(phi_post = phi_post,
                                       nu_post = nu_post,
                                       partial_residuals = current_partial_residuals_list,
-                                      all_tree_prediction = all_tree_prediction))
+                                      all_tree_prediction = all_tree_prediction,
+                                      post_verbs = df_verb))
 
         }
 
