@@ -238,7 +238,7 @@ gp_bart <- function(x_train,
                                 current_trees[[t]]  <- if(verb=="grow"){
                                         grow(res_vec = partial_residuals,tree = current_trees[[t]],
                                              x_train = x_train,x_test = x_test,xcut = xcut,tau = tau,
-                                             tau_mu = tau_mu,alpha = alpha,beta = beta,node_min_size = node_min_size)
+                                             tau_mu = tau_mu,alpha = alpha,beta = beta,node_min_size = node_min_size,cat_var = cat_var_)
                                 } else if(verb == "grow_rotation") {
                                         grow_rotation(res_vec = partial_residuals,tree = current_trees[[t]],
                                                       x_train = x_train,x_test = x_test,xcut = xcut,tau = tau,
@@ -250,7 +250,8 @@ gp_bart <- function(x_train,
                                 } else if(verb=="change"){
                                         change(res_vec = partial_residuals,tree = current_trees[[t]],
                                                x_train = x_train,x_test = x_test,xcut = xcut,
-                                               tau = tau,tau_mu = tau_mu,alpha = alpha,beta = beta,node_min_size = node_min_size)
+                                               tau = tau,tau_mu = tau_mu,alpha = alpha,beta = beta,node_min_size = node_min_size,
+                                               cat_var = cat_var_)
                                 } else if(verb == "change_rotation") {
                                         change_rotation(res_vec = partial_residuals,tree = current_trees[[t]],
                                                         x_train = x_train,x_test = x_test,xcut = xcut,tau = tau,
