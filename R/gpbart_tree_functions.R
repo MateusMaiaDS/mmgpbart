@@ -565,7 +565,7 @@ change_gpbart <- function(res_vec,
                         # Selecting the split rule for categorical variables
                         split_var_sampled_rule <- sample(unique(x_train[[split_var]]),size = 1)
 
-                        if((sum(x_train[g_node$obs_train,split_var]==split_var_sampled_rule)>=node_min_size) & (sum(x_train[g_node$obs_train,split_var]!=split_var_sampled_rule)>=node_min_size)){
+                        if((sum(x_train[c_node$obs_train,split_var]==split_var_sampled_rule)>=node_min_size) & (sum(x_train[c_node$obs_train,split_var]!=split_var_sampled_rule)>=node_min_size)){
                                 good_tree_index <- 1
                         } else {
                                 split_var_candidates <-  split_var_candidates[-which(split_var==split_var_candidates)]
