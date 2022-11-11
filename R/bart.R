@@ -492,7 +492,8 @@ change <- function(res_vec,
                    tau_mu,
                    alpha,
                    beta,
-                   node_min_size){
+                   node_min_size,
+                   cat_var){
 
 
         # Getting the node
