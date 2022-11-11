@@ -25,7 +25,8 @@ gp_bart <- function(x_train,
                  update_nu = TRUE,
                  store_verb = TRUE,
                  gp_variables_,
-                 rotation_variables_ = NULL){
+                 rotation_variables_ = NULL,
+                 cat_var_ = NULL){
 
 
         # Verifying if x_train and x_test are matrices
@@ -301,7 +302,8 @@ gp_bart <- function(x_train,
                                         current_tree_aux <- grow_gpbart(res_vec = partial_residuals,tree = current_trees[[t]],
                                                                           x_train = x_train,x_test = x_test,xcut = xcut,tau = tau,
                                                                           tau_mu = tau_mu,alpha = alpha,beta = beta,node_min_size = node_min_size,
-                                                                          nu = nu,phi_vector_p = phi_vec_matrix[t,],cov_gp = gp_variables_)
+                                                                          nu = nu,phi_vector_p = phi_vec_matrix[t,],cov_gp = gp_variables_,
+                                                                          cat_var = cat_var_)
                                 } else if( verb == "grow_rotate"){
                                         current_tree_aux <- grow_rotation_gpbart(res_vec = partial_residuals,tree = current_trees[[t]],
                                                                                    x_train = x_train,x_test = x_test,xcut = xcut,tau = tau,
@@ -319,7 +321,8 @@ gp_bart <- function(x_train,
                                         current_tree_aux <- change_gpbart(res_vec = partial_residuals,tree = current_trees[[t]],
                                                                           x_train = x_train,x_test = x_test,xcut = xcut,tau = tau,
                                                                           tau_mu = tau_mu,alpha = alpha,beta = beta,node_min_size = node_min_size,
-                                                                          nu = nu,phi_vector_p = phi_vec_matrix[t,],cov_gp = gp_variables_)
+                                                                          nu = nu,phi_vector_p = phi_vec_matrix[t,],cov_gp = gp_variables_,
+                                                                          cat_var = cat_var_)
                                 } else if (verb == "change_rotate"){
                                         current_tree_aux <- change_rotation_gpbart(res_vec = partial_residuals,tree = current_trees[[t]],
                                                                                    x_train = x_train,x_test = x_test,xcut = xcut,tau = tau,

@@ -39,7 +39,8 @@ grow_gpbart <- function(res_vec,
                  # Passing by nu arguments
                  nu,
                  phi_vector_p,
-                 cov_gp){
+                 cov_gp,
+                 cat_var = NULL){
 
 
         # Accepting or not the verb
@@ -55,58 +56,94 @@ grow_gpbart <- function(res_vec,
         g_node_position_orig <- which(names(tree) ==g_node_name)
 
         # Initializing the sample
-        split_var_candidates <- 1:ncol(x_train)
+        split_var_candidates <- colnames(x_train)
         good_tree_index <- 0
 
+
+        # GETTING CATEGORICAL VARIABLES
+        if(is.null(cat_var)){
+                cat_var <- names(x_train)[!apply(x_train,2,function(x){length(unique(x))>round(nrow(x_train)*0.4)})]
+        }
 
         while(good_tree_index==0){
                 # Selecting a valid split
                 split_var <- sample(split_var_candidates,size = 1)
 
-                # Avoiding invalid max.
-                if((length(x_train[g_node$obs_train,split_var])-node_min_size)<1){
-                        return(list(tree = tree, accepted = accepted))
-                }
 
-                # Getting the min and maximum observed value within the terminal node
-                min_node_obs <- sort(x_train[g_node$obs_train,split_var])[node_min_size]
-                max_node_obs <- sort(x_train[g_node$obs_train,split_var])[length(x_train[g_node$obs_train,split_var])-node_min_size]
+                # For the case of categorical variables
+                if(split_var %in% cat_var){
 
+                        # Selecting the split rule for categorical variables
+                        split_var_sampled_rule <- sample(unique(x_train[[split_var]]),size = 1)
 
-                # Getting the column from xcut
-                xcut_valid <- xcut[which(xcut[,split_var]>=min_node_obs & xcut[,split_var]<=max_node_obs),split_var]
+                        if((sum(x_train[g_node$obs_train,split_var]==split_var_sampled_rule)>=node_min_size) & (sum(x_train[g_node$obs_train,split_var]!=split_var_sampled_rule)>=node_min_size)){
+                                good_tree_index <- 1
+                        } else {
+                                split_var_candidates <-  split_var_candidates[-which(split_var==split_var_candidates)]
 
-
-                # No valid tree found
-                if(length(xcut_valid) == 0 ){
-
-                        split_var_candidates <-  split_var_candidates[-which(split_var==split_var_candidates)]
-
-                        if(length(split_var_candidates)==0){
-                                return(list(tree = tree, accepted = accepted)) # There are no valid candidates for this node
+                                if(length(split_var_candidates)==0){
+                                        return(list(tree = tree, accepted = accepted)) # There are no valid candidates for this node
+                                }
                         }
 
-                } else {
-                        good_tree_index <- 1
-                }
-        }
-        # Sampling a x_cut_rule
 
-        # Getting only unique values of xcut_valid
-        xcut_valid <- unique(xcut_valid)
-        split_var_sampled_rule <- sample(xcut_valid,size = 1)
+                }       else       {
+
+                                # Avoiding invalid max.
+                                if((length(x_train[g_node$obs_train,split_var])-node_min_size)<1){
+                                        return(list(tree = tree, accepted = accepted))
+                                }
+
+                                # Getting the min and maximum observed value within the terminal node
+                                min_node_obs <- sort(x_train[g_node$obs_train,split_var])[node_min_size]
+                                max_node_obs <- sort(x_train[g_node$obs_train,split_var])[length(x_train[g_node$obs_train,split_var])-node_min_size]
+
+
+                                # Getting the column from xcut
+                                xcut_valid <- xcut[which(xcut[,split_var]>=min_node_obs & xcut[,split_var]<=max_node_obs),split_var]
+
+
+                                # No valid tree found
+                                if(length(xcut_valid) == 0 ){
+
+                                        split_var_candidates <-  split_var_candidates[-which(split_var==split_var_candidates)]
+
+                                        if(length(split_var_candidates)==0){
+                                                return(list(tree = tree, accepted = accepted)) # There are no valid candidates for this node
+                                        }
+
+                                } else {
+                                        good_tree_index <- 1
+
+                                        # Getting only unique values of xcut_valid
+                                        xcut_valid <- unique(xcut_valid)
+                                        split_var_sampled_rule <- sample(xcut_valid,size = 1)
+                                }
+                }# End for no categorical variables
+        }
+
+
 
         # Creating the left and the right nodes
         max_index <- max(get_indexes(tree))
         max_tree_size <- length(tree)
 
-        # Creating the vector of new train and test index
-        left_train_id <- g_node$obs_train[which(x_train[g_node$obs_train,split_var]<=split_var_sampled_rule)]
-        right_train_id <- g_node$obs_train[which(x_train[g_node$obs_train,split_var]>split_var_sampled_rule)]
+        if(split_var %in% cat_var){
+                # Creating the vector of the splitting rules for the categorical
+                left_train_id <- g_node$obs_train[which(x_train[g_node$obs_train,split_var]==split_var_sampled_rule)]
+                right_train_id <- g_node$obs_train[which(x_train[g_node$obs_train,split_var]!=split_var_sampled_rule)]
 
-        left_test_id <- g_node$obs_test[which(x_test[g_node$obs_test,split_var]<=split_var_sampled_rule)]
-        right_test_id <- g_node$obs_test[which(x_test[g_node$obs_test,split_var]>split_var_sampled_rule)]
+                left_test_id <- g_node$obs_test[which(x_test[g_node$obs_test,split_var]==split_var_sampled_rule)]
+                right_test_id <- g_node$obs_test[which(x_test[g_node$obs_test,split_var]!=split_var_sampled_rule)]
 
+        } else {
+                # Creating the vector of new train and test index
+                left_train_id <- g_node$obs_train[which(x_train[g_node$obs_train,split_var]<=split_var_sampled_rule)]
+                right_train_id <- g_node$obs_train[which(x_train[g_node$obs_train,split_var]>split_var_sampled_rule)]
+
+                left_test_id <- g_node$obs_test[which(x_test[g_node$obs_test,split_var]<=split_var_sampled_rule)]
+                right_test_id <- g_node$obs_test[which(x_test[g_node$obs_test,split_var]>split_var_sampled_rule)]
+        }
         # No valid tree
         if((length(left_train_id) < node_min_size) || (length(right_train_id)<node_min_size)){
                 return(list(tree = tree, accepted = accepted))
@@ -479,7 +516,8 @@ change_gpbart <- function(res_vec,
                    node_min_size,
                    nu,
                    phi_vector_p,
-                   cov_gp){
+                   cov_gp,
+                   cat_var = NULL){
 
         # ACC
         accepted <- FALSE
@@ -511,52 +549,89 @@ change_gpbart <- function(res_vec,
         good_tree_index <- 0
 
         # Getting the name of the changed node
-        split_var_candidates <- 1:ncol(x_train)
+        split_var_candidates <- colnames(x_train)
 
+        if(is.null(cat_var)){
+                cat_var <- names(x_train)[!apply(x_train,2,function(x){length(unique(x))>round(nrow(x_train)*0.4)})]
+        }
 
         while(good_tree_index==0){
+
                 # Selecting a valid split
                 split_var <- sample(split_var_candidates,size = 1)
 
-                # Case of invalid max
-                if((length(x_train[c_node$obs_train,split_var])-node_min_size)<1){
-                        return(list(tree = tree, accepted = accepted))
-                }
+                if(split_var %in% cat_var){
 
+                        # Selecting the split rule for categorical variables
+                        split_var_sampled_rule <- sample(unique(x_train[[split_var]]),size = 1)
 
-                # Getting the min and maximum observed value within the terminal node
-                min_node_obs <- sort(x_train[c_node$obs_train,split_var])[node_min_size]
-                max_node_obs <- sort(x_train[c_node$obs_train,split_var])[length(x_train[c_node$obs_train,split_var])-node_min_size]
+                        if((sum(x_train[g_node$obs_train,split_var]==split_var_sampled_rule)>=node_min_size) & (sum(x_train[g_node$obs_train,split_var]!=split_var_sampled_rule)>=node_min_size)){
+                                good_tree_index <- 1
+                        } else {
+                                split_var_candidates <-  split_var_candidates[-which(split_var==split_var_candidates)]
 
-                # Getting the column from xcut
-                xcut_valid <- xcut[which(xcut[,split_var]>=min_node_obs & xcut[,split_var]<=max_node_obs),split_var]
-
-
-                # No valid tree found
-                if(length(xcut_valid) == 0 ){
-
-                        split_var_candidates <-  split_var_candidates[-which(split_var==split_var_candidates)]
-
-                        if(length(split_var_candidates)==0){
-                                return(list(tree = tree, accepted = accepted)) # There are no valid candidates for this node
+                                if(length(split_var_candidates)==0){
+                                        return(list(tree = tree, accepted = accepted)) # There are no valid candidates for this node
+                                }
                         }
 
                 } else {
-                        good_tree_index <- 1
+
+
+                        # Case of invalid max
+                        if((length(x_train[c_node$obs_train,split_var])-node_min_size)<1){
+                                return(list(tree = tree, accepted = accepted))
+                        }
+
+
+                        # Getting the min and maximum observed value within the terminal node
+                        min_node_obs <- sort(x_train[c_node$obs_train,split_var])[node_min_size]
+                        max_node_obs <- sort(x_train[c_node$obs_train,split_var])[length(x_train[c_node$obs_train,split_var])-node_min_size]
+
+                        # Getting the column from xcut
+                        xcut_valid <- xcut[which(xcut[,split_var]>=min_node_obs & xcut[,split_var]<=max_node_obs),split_var]
+
+
+                        # No valid tree found
+                        if(length(xcut_valid) == 0 ){
+
+                                split_var_candidates <-  split_var_candidates[-which(split_var==split_var_candidates)]
+
+                                if(length(split_var_candidates)==0){
+                                        return(list(tree = tree, accepted = accepted)) # There are no valid candidates for this node
+                                }
+
+                        } else {
+                                # Sampling a x_cut_rule
+                                # xcut_valid <- unique(xcut_valid)
+                                split_var_sampled_rule <- sample(xcut_valid,size = 1)
+                                good_tree_index <- 1
+                        }
+
                 }
+
+
+
         }
 
-        # Sampling a x_cut_rule
-        xcut_valid <- unique(xcut_valid)
-        split_var_sampled_rule <- sample(xcut_valid,size = 1)
 
+        if(split_var %in% cat_var){
 
-        # Creating the vector of new train and test index
-        left_train_id <- c_node$obs_train[which(x_train[c_node$obs_train,split_var]<=split_var_sampled_rule)]
-        right_train_id <- c_node$obs_train[which(x_train[c_node$obs_train,split_var]>split_var_sampled_rule)]
+                # Creating the vector of new train and test index
+                left_train_id <- c_node$obs_train[which(x_train[c_node$obs_train,split_var]==split_var_sampled_rule)]
+                right_train_id <- c_node$obs_train[which(x_train[c_node$obs_train,split_var]!=split_var_sampled_rule)]
 
-        left_test_id <- c_node$obs_test[which(x_test[c_node$obs_test,split_var]<=split_var_sampled_rule)]
-        right_test_id <- c_node$obs_test[which(x_test[c_node$obs_test,split_var]>split_var_sampled_rule)]
+                left_test_id <- c_node$obs_test[which(x_test[c_node$obs_test,split_var]==split_var_sampled_rule)]
+                right_test_id <- c_node$obs_test[which(x_test[c_node$obs_test,split_var]!=split_var_sampled_rule)]
+
+        } else {
+                # Creating the vector of new train and test index
+                left_train_id <- c_node$obs_train[which(x_train[c_node$obs_train,split_var]<=split_var_sampled_rule)]
+                right_train_id <- c_node$obs_train[which(x_train[c_node$obs_train,split_var]>split_var_sampled_rule)]
+
+                left_test_id <- c_node$obs_test[which(x_test[c_node$obs_test,split_var]<=split_var_sampled_rule)]
+                right_test_id <- c_node$obs_test[which(x_test[c_node$obs_test,split_var]>split_var_sampled_rule)]
+        }
 
         # Getting the left and the right
         new_left_name <- paste0("node_",c_node$left)
