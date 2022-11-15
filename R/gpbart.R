@@ -26,7 +26,10 @@ gp_bart <- function(x_train,
                  store_verb = TRUE,
                  gp_variables_,
                  rotation_variables_ = NULL,
-                 cat_var_ = NULL){
+                 cat_var_ = NULL,
+                 prior_phi_ = list(proposal_mode = "discrete_grid", grid = NULL),
+                 proposal_phi_ = list(type = NULL,prob_1 = NULL, prob_2 = NULL, shape_1 = NULL, shape_2 = NULL,
+                                      rate_1 = NULL, rate_2 = NULL)){
 
 
         # Verifying if x_train and x_test are matrices
@@ -346,9 +349,8 @@ gp_bart <- function(x_train,
                                 # Changing for the current tree
                                 # Updating the phi
                                 phi_vec_matrix[t,] <- update_phi_gpbart(tree = current_trees[[t]],x_train = x_train,res_vec = partial_residuals,
-                                                          phi_vector_p = phi_vec_matrix[t,],nu = nu,tau = tau,tau_mu = tau_mu,cov_gp = gp_variables_)
-
-
+                                                          phi_vector_p = phi_vec_matrix[t,],nu = nu,tau = tau,tau_mu = tau_mu,cov_gp = gp_variables_,
+                                                          proposal_phi = proposal_phi_,prior_phi = prior_phi_)
 
                                 # Update the mu values
                                 current_trees[[t]] <- update_mu_gpbart(tree = current_trees[[t]],x_train = x_train,res_vec = partial_residuals,nu = nu,

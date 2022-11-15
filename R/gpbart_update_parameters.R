@@ -20,7 +20,7 @@ update_phi_gpbart <- function(tree,
 
                 # Setting a proposal given by the list element "proposal phi"
                 if(proposal_phi[["proposal_mode"]]=="discrete_grid"){
-                        if(is.null(proposal_phi[["gird"]])){
+                        if(is.null(proposal_phi[["grid"]])){
                                 phi_proposal <- sample(c(seq(0.1,5,by=0.1),75,100,125),size = 1)
                         } else {
                                 phi_proposal <- sample(proposal_phi[["grid"]],size = 1)
@@ -51,8 +51,17 @@ update_phi_gpbart <- function(tree,
                 # prior_log <- dhalfcauchy(x = phi_proposal,mu = 0,sigma = 100,log = TRUE) - dhalfcauchy(x = phi_vector_p[i],mu = 0,sigma = 100,log = TRUE)
 
                 # Calculating the prior log value
-                prior_log <- log(0.7*stats::dgamma(x = phi_proposal,shape = 10000,rate = 100)+0.3*stats::dgamma(x = phi_proposal,shape = 1.5,rate = 0.2))-log(0.7*stats::dgamma(x = phi_vector_p[i],shape = 10000,rate = 100)+0.3*stats::dgamma(x = phi_vector_p[i],shape = 1.5,rate = 0.2))
-
+                if(is.null(prior_phi[["type"]])){
+                         prior_log <- log(0.7*stats::dgamma(x = phi_proposal,shape = 10000,rate = 100)+0.3*stats::dgamma(x = phi_proposal,shape = 1.5,rate = 0.2))-log(0.7*stats::dgamma(x = phi_vector_p[i],shape = 10000,rate = 100)+0.3*stats::dgamma(x = phi_vector_p[i],shape = 1.5,rate = 0.2))
+                } else if(prior_phi[["gamma_mixture"]]){
+                        if(any(is.null(prior_phi$prob_1),is.null(prior_phi$prob_2),is.null(prior_phi$shape_1),is.null(prior_phi$shape_2),is.null(prior_phi$rate_1),is.null(prior_phi$rate_2)) ){
+                                stop("Insert valid prior parameters")
+                        } else {
+                                prior_log <- log(prior_phi$prob_1*stats::dgamma(x = phi_proposal,shape = prior_phi$shape_1,rate = prior_phi$rate_1)+prior_phi$prob_2*stats::dgamma(x = phi_proposal,shape = prior_phi$shape_2,rate = prior_phi$rate_2))-log(prior_phi$prob_1*stats::dgamma(x = phi_vector_p[i],shape = prior_phi$shape_1,rate = prior_phi$rate_1)+prior_phi$prob_2*stats::dgamma(x = phi_vector_p[i],shape = prior_phi$shape_2,rate = prior_phi$rate_2))
+                        }
+                } else {
+                        stop("Insert a valid list of prior_phi")
+                }
 
 
                 # Calculating acceptance
