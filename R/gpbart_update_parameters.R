@@ -36,7 +36,7 @@ update_phi_gpbart <- function(tree,
                 # prior_log <- ((stats::dgamma(x = phi_proposal,shape = 0.1,rate = 1,log = TRUE)+stats::dgamma(x = phi_proposal,shape = 20,rate = 1,log = TRUE))-(stats::dgamma(x = phi_vector_p[i],shape = 0.1,rate = 1,log = TRUE)+stats::dgamma(x = phi_vector_p[i],shape = 20,rate = 1,log = TRUE)))
                 # prior_log <- ((stats::dgamma(x = phi_proposal,shape = 10,rate = 1,log = TRUE)-(stats::dgamma(x = phi_vector_p[i],shape = 10,rate = 1,log = TRUE))))
                 # prior_log <- dhalfcauchy(x = phi_proposal,mu = 0,sigma = 100,log = TRUE) - dhalfcauchy(x = phi_vector_p[i],mu = 0,sigma = 100,log = TRUE)
-                prior_log <- log(0.7*stats::dgamma(x = phi_proposal,shape = 1000,rate = 10)+0.3*stats::dgamma(x = phi_proposal,shape = 2,rate = 4,log = TRUE))-log(0.7*stats::dgamma(x = phi_vector_p[i],shape = 1000,rate = 10,log = TRUE)+0.3*stats::dgamma(x = phi_vector_p[i],shape = 2,rate = 4,log = TRUE))
+                prior_log <- log(0.7*stats::dgamma(x = phi_proposal,shape = 10000,rate = 100)+0.3*stats::dgamma(x = phi_proposal,shape = 1.5,rate = 0.2))-log(0.7*stats::dgamma(x = phi_vector_p[i],shape = 10000,rate = 100)+0.3*stats::dgamma(x = phi_vector_p[i],shape = 1.5,rate = 0.2))
 
 
 
