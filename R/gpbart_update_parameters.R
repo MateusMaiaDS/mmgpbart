@@ -5,18 +5,31 @@ update_phi_gpbart <- function(tree,
                               phi_vector_p,
                               tau,
                               tau_mu,
-                              cov_gp){
+                              cov_gp,
+                              prior_phi,
+                              proposal_phi){
 
         # Getting terminal nodes
         t_nodes <- get_terminals(tree)
 
-        # up_crossings <- c(0.001,0.01,0.05,0.1,0.5,1,2,5,10,100)
+
 
         for(i in 1:length(phi_vector_p)){
                 # phi_proposal <- sample(x = 1/(2*pi*up_crossings),size = 1)
                 # phi_proposal <- stats::runif(n = 1,min = (3/4)*phi_vector_p[i],max = (4/3)*phi_vector_p[i])
-                phi_proposal <- sample(c(seq(0.1,2,by=0.1),75,100,125),size = 1)
 
+                # Setting a proposal given by the list element "proposal phi"
+                if(proposal_phi[["proposal_mode"]]=="discrete_grid"){
+                        if(is.null(proposal_phi[["gird"]])){
+                                phi_proposal <- sample(c(seq(0.1,5,by=0.1),75,100,125),size = 1)
+                        } else {
+                                phi_proposal <- sample(proposal_phi[["grid"]],size = 1)
+                        }
+                } else if(proposal_phi[["proposal_model"]]=="sliding_window"){
+                        phi_proposal <- stats::runif(n = 1,min = (3/4)*phi_vector_p[i],max = (4/3)*phi_vector_p[i])
+                } else {
+                        stop("Insert a valid proposal_mode")
+                }
                 # phi_proposal <- sample(exp(seq(log(0.05),log(100),length.out = 50)),size = 1)
                 # phi_proposal <- stats::runif(0,100,n = 1)
 
@@ -36,6 +49,8 @@ update_phi_gpbart <- function(tree,
                 # prior_log <- ((stats::dgamma(x = phi_proposal,shape = 0.1,rate = 1,log = TRUE)+stats::dgamma(x = phi_proposal,shape = 20,rate = 1,log = TRUE))-(stats::dgamma(x = phi_vector_p[i],shape = 0.1,rate = 1,log = TRUE)+stats::dgamma(x = phi_vector_p[i],shape = 20,rate = 1,log = TRUE)))
                 # prior_log <- ((stats::dgamma(x = phi_proposal,shape = 10,rate = 1,log = TRUE)-(stats::dgamma(x = phi_vector_p[i],shape = 10,rate = 1,log = TRUE))))
                 # prior_log <- dhalfcauchy(x = phi_proposal,mu = 0,sigma = 100,log = TRUE) - dhalfcauchy(x = phi_vector_p[i],mu = 0,sigma = 100,log = TRUE)
+
+                # Calculating the prior log value
                 prior_log <- log(0.7*stats::dgamma(x = phi_proposal,shape = 10000,rate = 100)+0.3*stats::dgamma(x = phi_proposal,shape = 1.5,rate = 0.2))-log(0.7*stats::dgamma(x = phi_vector_p[i],shape = 10000,rate = 100)+0.3*stats::dgamma(x = phi_vector_p[i],shape = 1.5,rate = 0.2))
 
 
