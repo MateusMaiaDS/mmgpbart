@@ -14,7 +14,9 @@ update_phi_gpbart <- function(tree,
 
         for(i in 1:length(phi_vector_p)){
                 # phi_proposal <- sample(x = 1/(2*pi*up_crossings),size = 1)
-                phi_proposal <- stats::runif(n = 1,min = (3/4)*phi_vector_p[i],max = (4/3)*phi_vector_p[i])
+                # phi_proposal <- stats::runif(n = 1,min = (3/4)*phi_vector_p[i],max = (4/3)*phi_vector_p[i])
+                phi_proposal <- sample(c(seq(0.1,2,by=0.1),75,100,125),size = 1)
+
                 # phi_proposal <- sample(exp(seq(log(0.05),log(100),length.out = 50)),size = 1)
                 # phi_proposal <- stats::runif(0,100,n = 1)
 
@@ -28,13 +30,18 @@ update_phi_gpbart <- function(tree,
 
 
                 # Transition loglikelihood
-                transition_log <- stats::dunif(x = phi_vector_p[i],min = (3/4)*phi_proposal,max = (4/3)*phi_proposal,log = TRUE) - stats::dunif(x = phi_proposal,min = (3/4)*phi_vector_p[i],max = (4/3)*phi_vector_p[i],log = TRUE)
+                # transition_log <- stats::dunif(x = phi_vector_p[i],min = (3/4)*phi_proposal,max = (4/3)*phi_proposal,log = TRUE) - stats::dunif(x = phi_proposal,min = (3/4)*phi_vector_p[i],max = (4/3)*phi_vector_p[i],log = TRUE)
+                # transition_log <- stats::dunif(x = phi_vector_p[i],min = (3/4)*phi_proposal,max = (4/3)*phi_proposal,log = TRUE) - stats::dunif(x = phi_proposal,min = (3/4)*phi_vector_p[i],max = (4/3)*phi_vector_p[i],log = TRUE)
+
                 # prior_log <- ((stats::dgamma(x = phi_proposal,shape = 0.1,rate = 1,log = TRUE)+stats::dgamma(x = phi_proposal,shape = 20,rate = 1,log = TRUE))-(stats::dgamma(x = phi_vector_p[i],shape = 0.1,rate = 1,log = TRUE)+stats::dgamma(x = phi_vector_p[i],shape = 20,rate = 1,log = TRUE)))
                 # prior_log <- ((stats::dgamma(x = phi_proposal,shape = 10,rate = 1,log = TRUE)-(stats::dgamma(x = phi_vector_p[i],shape = 10,rate = 1,log = TRUE))))
-                prior_log <- dhalfcauchy(x = phi_proposal,mu = 0,sigma = 100,log = TRUE) - dhalfcauchy(x = phi_vector_p[i],mu = 0,sigma = 100,log = TRUE)
+                # prior_log <- dhalfcauchy(x = phi_proposal,mu = 0,sigma = 100,log = TRUE) - dhalfcauchy(x = phi_vector_p[i],mu = 0,sigma = 100,log = TRUE)
+                prior_log <- ((stats::dgamma(x = phi_proposal,shape = 100,rate = 1,log = TRUE)+stats::dgamma(x = phi_proposal,shape = 2,rate = 4,log = TRUE))-(stats::dgamma(x = phi_vector_p[i],shape = 100,rate = 1,log = TRUE)+stats::dgamma(x = phi_vector_p[i],shape = 2,rate = 2,log = TRUE)))
+
+
 
                 # Calculating acceptance
-                acceptance <- exp(new_log_like-old_log_like + transition_log + prior_log ) #+ stats::dgamma(x = phi_proposal,shape = 5,rate = 1,log = TRUE) - stats::dgamma(x = phi_vector_p[i],shape = 5,rate = 1,log = TRUE) )
+                acceptance <- exp(new_log_like-old_log_like + prior_log ) #+ stats::dgamma(x = phi_proposal,shape = 5,rate = 1,log = TRUE) - stats::dgamma(x = phi_vector_p[i],shape = 5,rate = 1,log = TRUE) )
 
                 # acceptance <- exp(new_log_like-old_log_like)
 
