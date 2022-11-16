@@ -21,7 +21,7 @@ update_phi_gpbart <- function(tree,
                 # Setting a proposal given by the list element "proposal phi"
                 if(prior_phi[["proposal_mode"]]=="discrete_grid"){
                         if(is.null(prior_phi[["grid"]])){
-                                phi_proposal <- sample(c(seq(0,20,by=0.5)[-1],75,100,125),size = 1)
+                                phi_proposal <- sample(c(0.1,seq(0,10,by=0.5)[-1],seq(10,20,by = 1), 25,30,50,75,100,125),size = 1)
                         } else {
                                 phi_proposal <- sample(proposal_phi[["grid"]],size = 1)
                         }
